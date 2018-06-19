@@ -34,9 +34,8 @@ object LongStruct: Bytable {
     override val sizeInBytes: Int = 64
 }
 
-interface Struct<T> {
-    val sizeInBytes: kotlin.Int
-    fun getMemberStructs(): List<StructDescription<out Any>> = emptyList()
+interface Struct<T>: Bytable {
+    fun getMemberStructs(): List<StructDescription> = emptyList()
     val buffer: ByteBuffer
     fun ByteBuffer.put(input: T)
     fun <TARGET_TYPE: Struct<*>> saveTo(target: TARGET_TYPE): TARGET_TYPE = buffer.saveTo(target)
@@ -47,32 +46,50 @@ interface Struct<T> {
 }
 
 abstract class SimpleStruct<SELF_TYPE> : Struct<SELF_TYPE> {
-    private val memberStructs = mutableListOf<StructDescription<out Any>>()
+    private val memberStructs = mutableListOf<StructDescription>()
     override fun getMemberStructs() = memberStructs.toList()
 
     var currentByteOffset: kotlin.Int = 0
     override val buffer: ByteBuffer by lazy { BufferUtils.createByteBuffer(sizeInBytes) }
 
-    override val sizeInBytes by lazy { memberStructs.sumBy { it.bytable.sizeInBytes } }
-
-    operator fun <SELF_TYPE> kotlin.Int.Companion.provideDelegate(thisRef: Struct<SELF_TYPE>, prop: KProperty<*>): ReadWriteProperty<Struct<SELF_TYPE>, kotlin.Int> {
-        return registerStructProperty(thisRef, prop)
+    override val sizeInBytes by lazy {
+        memberStructs.sumBy {
+            it.bytable.sizeInBytes
+        }
     }
 
-    private inline fun <OWNER, reified FIELD_TYPE> registerStructProperty(thisRef: OWNER, property: KProperty<*>): ReadWriteProperty<OWNER, FIELD_TYPE> {
-        return object: StructProperty<OWNER, FIELD_TYPE>() {
-            private val myByteOffset = currentByteOffset
+    operator fun Int.Companion.provideDelegate(thisRef: Struct<SELF_TYPE>, prop: KProperty<*>): StructProperty<Struct<SELF_TYPE>, Int> {
+        return IntProperty<Struct<SELF_TYPE>>(currentByteOffset, thisRef).register(IntStruct)
+    }
+    operator fun Float.Companion.provideDelegate(thisRef: Struct<SELF_TYPE>, prop: KProperty<*>): StructProperty<Struct<SELF_TYPE>, Float> {
+        return FloatProperty<Struct<SELF_TYPE>>(currentByteOffset, thisRef).register(FloatStruct)
+    }
+    operator fun Double.Companion.provideDelegate(thisRef: Struct<SELF_TYPE>, prop: KProperty<*>): StructProperty<Struct<SELF_TYPE>, Double> {
+        return DoubleProperty<Struct<SELF_TYPE>>(currentByteOffset, thisRef).register(DoubleStruct)
+    }
 
-            override fun setValue(thisRef: OWNER, property: KProperty<*>, value: FIELD_TYPE) {
-                buffer.putInt(myByteOffset, value as kotlin.Int) // TODO: Check this cast
+
+    operator fun <FIELD_TYPE: Struct<*>> FIELD_TYPE.provideDelegate(thisRef: Struct<SELF_TYPE>, prop: KProperty<*>): StructProperty<Struct<SELF_TYPE>, FIELD_TYPE> {
+
+        return object: StructProperty<Struct<SELF_TYPE>, FIELD_TYPE>() {
+            override fun getValue(thisRef: Struct<SELF_TYPE>, property: KProperty<*>): FIELD_TYPE {
+                return this@provideDelegate
             }
 
-            override fun getValue(thisRef: OWNER, property: KProperty<*>) = buffer.getInt(myByteOffset) as FIELD_TYPE // TODO: Check this cast
-        }.apply {
-            memberStructs.add(StructDescription(IntStruct, memberStructs.size))
-            currentByteOffset += Integer.BYTES
-            this
-        }
+            override fun setValue(thisRef: Struct<SELF_TYPE>, property: KProperty<*>, value: FIELD_TYPE) {
+                TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+            }
+
+            override val byteOffset = currentByteOffset
+            override val sizeInBytes = this@provideDelegate.sizeInBytes
+        }.register(this)
+
+    }
+
+    private fun <FIELD_TYPE> StructProperty<Struct<SELF_TYPE>, FIELD_TYPE>.register(struct: Bytable): StructProperty<Struct<SELF_TYPE>, FIELD_TYPE> {
+        currentByteOffset += this.sizeInBytes
+        memberStructs.add(StructDescription(struct, memberStructs.size))
+        return this
     }
 
     override fun ByteBuffer.put(input: SELF_TYPE) {
@@ -98,14 +115,42 @@ abstract class SimpleStruct<SELF_TYPE> : Struct<SELF_TYPE> {
     }
 }
 
-abstract class StructProperty<OWNER, FIELD_TYPE>: ReadWriteProperty<OWNER, FIELD_TYPE>
+abstract class StructProperty<OWNER, FIELD_TYPE>: ReadWriteProperty<OWNER, FIELD_TYPE>{
+    protected abstract val byteOffset: Int
+    abstract val sizeInBytes: Int
+}
 
-data class StructDescription<T>(val bytable: Bytable, val index: kotlin.Int)
+data class StructDescription(val bytable: Bytable, val index: kotlin.Int)
 
-class Layout(unsortedStructDescriptions: List<StructDescription<Any>>,
-             val structDescriptions: List<StructDescription<Any>> = unsortedStructDescriptions.sortedBy { it.index },
-             val sizeInBytes: kotlin.Int = unsortedStructDescriptions.sumBy { it.bytable.sizeInBytes }) {
-    val memberStructs by lazy {
-        structDescriptions.map { it.bytable }
+class IntProperty<OWNER>(currentByteOffset: Int, val bufferProvider: Struct<*>): StructProperty<OWNER, Int>() {
+    override val sizeInBytes = Integer.BYTES
+    override val byteOffset = currentByteOffset
+
+    override fun setValue(thisRef: OWNER, property: KProperty<*>, value: Int) {
+        bufferProvider.buffer.putInt(byteOffset, value)
     }
+
+    override fun getValue(thisRef: OWNER, property: KProperty<*>) = bufferProvider.buffer.getInt(byteOffset)
+}
+
+class FloatProperty<OWNER>(currentByteOffset: Int, val bufferProvider: Struct<*>): StructProperty<OWNER, Float>() {
+    override val sizeInBytes = java.lang.Float.BYTES
+    override val byteOffset = currentByteOffset
+
+    override fun setValue(thisRef: OWNER, property: KProperty<*>, value: Float) {
+        bufferProvider.buffer.putFloat(byteOffset, value)
+    }
+
+    override fun getValue(thisRef: OWNER, property: KProperty<*>) = bufferProvider.buffer.getFloat(byteOffset)
+}
+
+class DoubleProperty<OWNER>(currentByteOffset: Int, val bufferProvider: Struct<*>): StructProperty<OWNER, Double>() {
+    override val sizeInBytes = java.lang.Float.BYTES
+    override val byteOffset = currentByteOffset
+
+    override fun setValue(thisRef: OWNER, property: KProperty<*>, value: Double) {
+        bufferProvider.buffer.putDouble(byteOffset, value)
+    }
+
+    override fun getValue(thisRef: OWNER, property: KProperty<*>) = bufferProvider.buffer.getDouble(byteOffset)
 }
