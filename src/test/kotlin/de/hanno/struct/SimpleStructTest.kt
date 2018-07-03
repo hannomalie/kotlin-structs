@@ -3,22 +3,23 @@ package de.hanno.struct
 import org.junit.Assert
 import org.junit.Test
 
-class SimpleStructTest {
+class NestedStructTest {
+
     @Test
-    fun testSimpleStructClass() {
-        class MyStruct: SimpleStruct<MyStruct>() {
-            val myInt by Int
-            var myMutableInt by Int
-            var myMutableFloat by Float
+    fun testNestedStructClass() {
+        class MyStruct: BaseStruct<MyStruct>() {
+            val myInt by 0
+            var myMutableInt by 0
+            var myMutableFloat by 0.0f
         }
 
 
         val myStruct = MyStruct().apply { myMutableInt = 4 }.apply { myMutableFloat = 2.0f }
 
-        Assert.assertEquals(96, myStruct.sizeInBytes)
-        Assert.assertEquals(IntStruct, myStruct.getMemberStructs()[0].bytable)
-        Assert.assertEquals(IntStruct, myStruct.getMemberStructs()[1].bytable)
-        Assert.assertEquals(FloatStruct, myStruct.getMemberStructs()[2].bytable)
+        Assert.assertEquals(12, myStruct.sizeInBytes)
+        Assert.assertTrue(myStruct.memberStructs[0] is IntProperty)
+        Assert.assertTrue(myStruct.memberStructs[1] is IntProperty)
+        Assert.assertTrue(myStruct.memberStructs[2] is FloatProperty)
         Assert.assertEquals(0, myStruct.myInt)
         Assert.assertEquals(4, myStruct.myMutableInt)
         Assert.assertEquals(2f, myStruct.myMutableFloat)
@@ -29,18 +30,18 @@ class SimpleStructTest {
     }
 
     @Test
-    fun testSimpleStructClassFromAndToBuffer() {
-        class MyStruct: SimpleStruct<MyStruct>() {
-            val myInt by Int
-            var myMutableInt by Int
+    fun testNestedStructClassFromAndToBuffer() {
+        class MyStruct: BaseStruct<MyStruct>() {
+            val myInt by 0
+            var myMutableInt by 0
         }
 
 
         val source = MyStruct().apply { myMutableInt = 4 }
 
-        Assert.assertEquals(64, source.sizeInBytes)
-        Assert.assertEquals(IntStruct, source.getMemberStructs()[0].bytable)
-        Assert.assertEquals(IntStruct, source.getMemberStructs()[1].bytable)
+        Assert.assertEquals(8, source.sizeInBytes)
+        Assert.assertTrue(source.memberStructs[0] is IntProperty)
+        Assert.assertTrue(source.memberStructs[1] is IntProperty)
         Assert.assertEquals(0, source.myInt)
         Assert.assertEquals(4, source.myMutableInt)
         source.buffer.rewind()
@@ -49,7 +50,7 @@ class SimpleStructTest {
 
 
         val target = MyStruct()
-        source.saveTo(target)
+        source.copyTo(target)
         Assert.assertEquals(0, target.myInt)
         Assert.assertEquals(4, target.myMutableInt)
 
@@ -58,36 +59,48 @@ class SimpleStructTest {
 
         target.buffer.rewind()
         source.buffer.rewind()
-        source.initFrom(target)
+        source.copyFrom(target)
         Assert.assertEquals(5, source.myMutableInt)
 
-    }
-
-    class NestedStruct: SimpleStruct<NestedStruct>() {
-        var myMutableInt by Int
     }
 
 
     @Test
     fun testNestedStruct() {
 
-        class MyStruct : SimpleStruct<MyStruct>() {
-            val myInt by Int
-            var myMutableFloat by Float
-            val nestedStruct: NestedStruct by NestedStruct()
+        class SimpleNestedStruct(parent: Struct): BaseStruct<SimpleNestedStruct>(parent) {
+            var myMutableInt by 0
+        }
+
+        class MyStruct : BaseStruct<MyStruct>() {
+            val myInt by 0
+            var myMutableFloat by 0.0f
+            val nestedStruct: SimpleNestedStruct by SimpleNestedStruct(this@MyStruct)
         }
 
 
-        val myStruct = MyStruct().apply { myMutableFloat = 2.0f }
+        val myStruct = MyStruct()
+        Assert.assertEquals(3, myStruct.memberStructs.size)
         val nested = myStruct.nestedStruct
-        nested.myMutableInt = 99
-        Assert.assertEquals(IntStruct, nested.getMemberStructs()[0].bytable)
-        Assert.assertEquals(99, nested.myMutableInt)
 
-        Assert.assertEquals(96, myStruct.sizeInBytes)
-        Assert.assertEquals(IntStruct, myStruct.getMemberStructs()[0].bytable)
-        Assert.assertEquals(FloatStruct, myStruct.getMemberStructs()[1].bytable)
-        Assert.assertEquals(nested, myStruct.getMemberStructs()[2].bytable)
+        Assert.assertEquals(myStruct.buffer, nested.buffer)
+        Assert.assertEquals(12, myStruct.sizeInBytes)
+
+        myStruct.myMutableFloat = 2.0f
+        nested.myMutableInt = 99
+        Assert.assertTrue(nested.memberStructs[0] is IntProperty)
+        Assert.assertEquals(8, nested.memberStructs[0].baseByteOffset)
+        Assert.assertEquals(99, nested.myMutableInt)
+        Assert.assertEquals(0, myStruct.myInt)
+        Assert.assertTrue(myStruct.memberStructs[0] is IntProperty)
+        Assert.assertTrue(myStruct.memberStructs[1] is FloatProperty)
+        Assert.assertTrue(myStruct.memberStructs[2] is StructProperty)
+
+
+        myStruct.buffer.rewind()
+        Assert.assertEquals(0, myStruct.buffer.int)
+        Assert.assertEquals(2.0f, myStruct.buffer.float)
+        Assert.assertEquals(99, myStruct.buffer.int)
     }
 }
 
