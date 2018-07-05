@@ -94,13 +94,19 @@ class NestedStructTest {
         Assert.assertEquals(0, myStruct.myInt)
         Assert.assertTrue(myStruct.memberStructs[0] is IntProperty)
         Assert.assertTrue(myStruct.memberStructs[1] is FloatProperty)
-        Assert.assertTrue(myStruct.memberStructs[2] is StructProperty)
+        Assert.assertTrue(myStruct.memberStructs[2] is ReadOnlyStructProperty)
 
 
         myStruct.buffer.rewind()
         Assert.assertEquals(0, myStruct.buffer.int)
         Assert.assertEquals(2.0f, myStruct.buffer.float)
         Assert.assertEquals(99, myStruct.buffer.int)
+    }
+
+    @Test
+    fun testArrayStruct() {
+        class MyStructArray : BaseStruct<MyStructArray>() {
+        }
     }
 }
 

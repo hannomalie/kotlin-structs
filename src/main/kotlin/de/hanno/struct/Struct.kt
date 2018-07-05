@@ -2,6 +2,7 @@ package de.hanno.struct
 
 import org.lwjgl.BufferUtils
 import java.nio.ByteBuffer
+import kotlin.properties.ReadOnlyProperty
 import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KProperty
 
@@ -14,17 +15,17 @@ interface Bufferable: Bytable {
 }
 
 interface Struct: Bufferable {
-    val memberStructs: MutableList<StructProperty<*,*>>
+    val memberStructs: MutableList<ReadOnlyStructProperty<*,*>>
     fun getCurrentLocalByteOffset() = memberStructs.sumBy { it.sizeInBytes }
 }
 
-fun Struct.copyTo(target: Struct) {
+fun <T: Struct> T.copyTo(target: T) {
     val tempArray = ByteArray(sizeInBytes)
     this.buffer.rewind()
     this.buffer.get(tempArray, 0, sizeInBytes)
     target.buffer.put(tempArray, 0, sizeInBytes)
 }
-fun Struct.copyFrom(target: Struct) {
+fun <T: Struct> T.copyFrom(target: T) {
     target.copyTo(this)
 }
 
@@ -45,26 +46,23 @@ interface SimpleStruct<SELF_TYPE>: Struct {
         return LongProperty<SimpleStruct<SELF_TYPE>>(thisRef, baseByteOffset, getCurrentLocalByteOffset()).apply { this@apply.register(this@apply) }
     }
 
-    operator fun <T: SimpleStruct<*>> T.provideDelegate(thisRef: SimpleStruct<SELF_TYPE>, prop: KProperty<*>): StructProperty<SimpleStruct<SELF_TYPE>, T> {
-        return object : AbstractProperty<SimpleStruct<SELF_TYPE>, T>(this.sizeInBytes) {
+    operator fun <T: SimpleStruct<*>> T.provideDelegate(thisRef: SimpleStruct<SELF_TYPE>, prop: KProperty<*>): ReadOnlyStructProperty<SimpleStruct<SELF_TYPE>, T> {
+        return object : ReadOnlyStructProperty<SimpleStruct<SELF_TYPE>, T>() {
+            override val sizeInBytes = this@provideDelegate.sizeInBytes
 
             override fun getValue(thisRef: SimpleStruct<SELF_TYPE>, property: KProperty<*>): T {
                 return this@provideDelegate
             }
-
-            override fun setValue(thisRef: SimpleStruct<SELF_TYPE>, property: KProperty<*>, value: T) {
-                TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
-            }
         }.apply { this@apply.register(this@apply) }
     }
 
-    fun <FIELD_TYPE> StructProperty<SimpleStruct<SELF_TYPE>, FIELD_TYPE>.register(structProperty: StructProperty<SimpleStruct<SELF_TYPE>, FIELD_TYPE>) {
+    fun <FIELD_TYPE> ReadOnlyStructProperty<SimpleStruct<SELF_TYPE>, FIELD_TYPE>.register(structProperty: ReadOnlyStructProperty<SimpleStruct<SELF_TYPE>, FIELD_TYPE>) {
         memberStructs.add(structProperty)
     }
 }
 
 abstract class BaseStruct<SELF_TYPE>(override val parent: Struct? = null): SimpleStruct<SELF_TYPE> {
-    override val memberStructs = mutableListOf<StructProperty<*,*>>()
+    override val memberStructs = mutableListOf<ReadOnlyStructProperty<*,*>>()
     override val sizeInBytes by lazy {
         memberStructs.sumBy { it.sizeInBytes }
     }
@@ -74,14 +72,30 @@ abstract class BaseStruct<SELF_TYPE>(override val parent: Struct? = null): Simpl
     }
 }
 
-abstract class StructProperty<OWNER, FIELD_TYPE>: ReadWriteProperty<OWNER, FIELD_TYPE>{
+abstract class SlidingWindow<SELF_TYPE>: BaseStruct<SELF_TYPE>() {
+    override var parent: Struct? = null
+        set(value) {
+            field = value
+            buffer = value?.buffer
+        }
+    override val memberStructs = mutableListOf<ReadOnlyStructProperty<*,*>>()
+    override val sizeInBytes by lazy {
+        memberStructs.sumBy { it.sizeInBytes }
+    }
+    override val baseByteOffset = 0
+    override var buffer: ByteBuffer? = parent?.buffer
+}
+
+abstract class ReadOnlyStructProperty<OWNER, FIELD_TYPE>: ReadOnlyProperty<OWNER, FIELD_TYPE> {
     abstract val sizeInBytes: Int
 
     open var baseByteOffset = 0
         protected set
     open var localByteOffset = 0
-//        protected set
+        protected set
 }
+
+abstract class StructProperty<OWNER, FIELD_TYPE>: ReadOnlyStructProperty<OWNER, FIELD_TYPE>(), ReadWriteProperty<OWNER, FIELD_TYPE>
 
 
 abstract class AbstractProperty<OWNER, FIELD_TYPE>(override val sizeInBytes: Int) : StructProperty<OWNER, FIELD_TYPE>()
