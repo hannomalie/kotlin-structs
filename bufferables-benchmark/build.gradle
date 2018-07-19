@@ -12,13 +12,9 @@ buildscript {
 }
 
 plugins {
-    id 'java'
     id 'org.jetbrains.kotlin.jvm'
-    id 'application'
 }
-
-group 'de.hanno'
-version '1.0-SNAPSHOT'
+apply plugin: 'application'
 
 sourceCompatibility = 1.8
 

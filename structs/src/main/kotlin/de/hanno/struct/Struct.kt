@@ -2,131 +2,130 @@ package de.hanno.struct
 
 import org.lwjgl.BufferUtils
 import java.nio.ByteBuffer
-import kotlin.properties.ReadOnlyProperty
 import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KProperty
 
-interface Bytable {
+interface Sizable {
     val sizeInBytes: Int
 }
 
-interface Bufferable: Bytable {
+interface Bufferable: Sizable {
     val buffer: ByteBuffer
 }
 
 interface Struct: Bufferable {
-    val memberStructs: MutableList<ReadOnlyStructProperty<*,*>>
+    val memberStructs: MutableList<StructProperty<*>>
     fun getCurrentLocalByteOffset() = memberStructs.sumBy { it.sizeInBytes }
 }
 
-fun <T: Struct> T.copyTo(target: T) {
+fun <T: Bufferable> T.copyTo(target: T) {
     val tempArray = ByteArray(sizeInBytes)
     this.buffer.rewind()
     this.buffer.get(tempArray, 0, sizeInBytes)
     target.buffer.put(tempArray, 0, sizeInBytes)
 }
-fun <T: Struct> T.copyFrom(target: T) {
+fun <T: Bufferable> T.copyFrom(target: T) {
     target.copyTo(this)
 }
 
-interface SimpleStruct<SELF_TYPE>: Struct {
+interface SimpleStruct : Struct {
     val parent: Struct?
     val baseByteOffset: Int
 
-    operator fun Int.provideDelegate(thisRef: SimpleStruct<SELF_TYPE>, prop: KProperty<*>): StructProperty<SimpleStruct<SELF_TYPE>, Int> {
-        return IntProperty<SimpleStruct<SELF_TYPE>>(thisRef, baseByteOffset, getCurrentLocalByteOffset()).apply { this@apply.register(this@apply) }
+    operator fun Int.provideDelegate(thisRef: SimpleStruct, prop: KProperty<*>): IntProperty {
+        return IntProperty(getCurrentLocalByteOffset()).apply { thisRef.register(this@apply) }
     }
-    operator fun Float.provideDelegate(thisRef: SimpleStruct<SELF_TYPE>, prop: KProperty<*>): StructProperty<SimpleStruct<SELF_TYPE>, Float> {
-        return FloatProperty<SimpleStruct<SELF_TYPE>>(thisRef, baseByteOffset, getCurrentLocalByteOffset()).apply { this@apply.register(this@apply) }
+    operator fun Float.provideDelegate(thisRef: SimpleStruct, prop: KProperty<*>): FloatProperty {
+        return FloatProperty(getCurrentLocalByteOffset()).apply { thisRef.register(this@apply) }
     }
-    operator fun Double.provideDelegate(thisRef: SimpleStruct<SELF_TYPE>, prop: KProperty<*>): StructProperty<SimpleStruct<SELF_TYPE>, Double> {
-        return DoubleProperty<SimpleStruct<SELF_TYPE>>(thisRef, baseByteOffset, getCurrentLocalByteOffset()).apply { this@apply.register(this@apply) }
+    operator fun Double.provideDelegate(thisRef: SimpleStruct, prop: KProperty<*>): DoubleProperty {
+        return DoubleProperty(getCurrentLocalByteOffset()).apply { thisRef.register(this@apply) }
     }
-    operator fun Long.provideDelegate(thisRef: SimpleStruct<SELF_TYPE>, prop: KProperty<*>): StructProperty<SimpleStruct<SELF_TYPE>, Long> {
-        return LongProperty<SimpleStruct<SELF_TYPE>>(thisRef, baseByteOffset, getCurrentLocalByteOffset()).apply { this@apply.register(this@apply) }
+    operator fun Long.provideDelegate(thisRef: SimpleStruct, prop: KProperty<*>): LongProperty {
+        return LongProperty(getCurrentLocalByteOffset()).apply { thisRef.register(this@apply) }
     }
 
-    operator fun <T: SimpleStruct<*>> T.provideDelegate(thisRef: SimpleStruct<SELF_TYPE>, prop: KProperty<*>): ReadOnlyStructProperty<SimpleStruct<SELF_TYPE>, T> {
-        return object : ReadOnlyStructProperty<SimpleStruct<SELF_TYPE>, T>() {
-            override val sizeInBytes = this@provideDelegate.sizeInBytes
+    operator fun <FIELD: SimpleStruct> FIELD.provideDelegate(thisRef: SimpleStruct, prop: KProperty<*>): StructProperty<FIELD> {
+        return object : StructProperty<FIELD>(sizeInBytes) {
+            var currentRef = this@provideDelegate
 
-            override fun getValue(thisRef: SimpleStruct<SELF_TYPE>, property: KProperty<*>): T {
-                return this@provideDelegate
+            override fun getValue(thisRef: SimpleStruct, property: KProperty<*>): FIELD {
+                return currentRef
             }
-        }.apply { this@apply.register(this@apply) }
+
+            override fun setValue(thisRef: SimpleStruct, property: KProperty<*>, value: FIELD) {
+                currentRef = value
+            }
+
+        }.apply { thisRef.register(this@apply) }
     }
 
-    fun <FIELD_TYPE> ReadOnlyStructProperty<SimpleStruct<SELF_TYPE>, FIELD_TYPE>.register(structProperty: ReadOnlyStructProperty<SimpleStruct<SELF_TYPE>, FIELD_TYPE>) {
+    fun register(structProperty: StructProperty<*>) {
         memberStructs.add(structProperty)
     }
 }
 
-abstract class BaseStruct<SELF_TYPE>(override val parent: Struct? = null): SimpleStruct<SELF_TYPE> {
-    override val memberStructs = mutableListOf<ReadOnlyStructProperty<*,*>>()
+abstract class BaseStruct(override val parent: Struct? = null): SimpleStruct {
+    override val memberStructs = mutableListOf<StructProperty<*>>()
     override val sizeInBytes by lazy {
         memberStructs.sumBy { it.sizeInBytes }
     }
+//    override val sizeInBytes
+//        get() = memberStructs.sumBy { it.sizeInBytes }
     override val baseByteOffset = parent?.getCurrentLocalByteOffset() ?: 0
     override val buffer by lazy {
         parent?.buffer ?: BufferUtils.createByteBuffer(sizeInBytes)
     }
 }
 
-abstract class SlidingWindow<SELF_TYPE>: BaseStruct<SELF_TYPE>() {
+abstract class SlidingWindow : BaseStruct() {
     override var parent: Struct? = null
         set(value) {
             field = value
             buffer = value?.buffer
+            baseByteOffset = value?.buffer?.position() ?: 0
         }
-    override val memberStructs = mutableListOf<ReadOnlyStructProperty<*,*>>()
+    override val memberStructs = mutableListOf<StructProperty<*>>()
     override val sizeInBytes by lazy {
         memberStructs.sumBy { it.sizeInBytes }
     }
-    override val baseByteOffset = 0
+    override var baseByteOffset = 0
     override var buffer: ByteBuffer? = parent?.buffer
 }
 
-abstract class ReadOnlyStructProperty<OWNER, FIELD_TYPE>: ReadOnlyProperty<OWNER, FIELD_TYPE> {
-    abstract val sizeInBytes: Int
+interface GenericStructProperty<OWNER_TYPE: SimpleStruct, FIELD_TYPE> : ReadWriteProperty<OWNER_TYPE, FIELD_TYPE>
 
-    open var baseByteOffset = 0
-        protected set
+abstract class StructProperty<FIELD_TYPE>(val sizeInBytes: Int): GenericStructProperty<SimpleStruct, FIELD_TYPE> {
     open var localByteOffset = 0
         protected set
 }
+class IntProperty(override var localByteOffset: Int): StructProperty<Int>(Integer.BYTES) {
 
-abstract class StructProperty<OWNER, FIELD_TYPE>: ReadOnlyStructProperty<OWNER, FIELD_TYPE>(), ReadWriteProperty<OWNER, FIELD_TYPE>
-
-
-abstract class AbstractProperty<OWNER, FIELD_TYPE>(override val sizeInBytes: Int) : StructProperty<OWNER, FIELD_TYPE>()
-
-class IntProperty<OWNER>(private val parentStruct: SimpleStruct<*>, override var baseByteOffset: Int = 0, override var localByteOffset: Int): AbstractProperty<OWNER, Int>(Integer.BYTES) {
-
-    override fun setValue(thisRef: OWNER, property: KProperty<*>, value: Int) {
-        parentStruct.buffer.putInt(baseByteOffset + localByteOffset, value)
+    override fun setValue(thisRef: SimpleStruct, property: KProperty<*>, value: Int) {
+        thisRef.buffer.putInt(thisRef.baseByteOffset + localByteOffset, value)
     }
-    override fun getValue(thisRef: OWNER, property: KProperty<*>) = parentStruct.buffer.getInt(baseByteOffset + localByteOffset)
+    override fun getValue(thisRef: SimpleStruct, property: KProperty<*>) = thisRef.buffer.getInt(thisRef.baseByteOffset + localByteOffset)
 }
 
-class FloatProperty<OWNER>(private val parentStruct: SimpleStruct<*>, override var baseByteOffset: Int = 0, override var localByteOffset: Int): AbstractProperty<OWNER, Float>(java.lang.Float.BYTES) {
+class FloatProperty(override var localByteOffset: Int): StructProperty<Float>(java.lang.Float.BYTES) {
 
-    override fun setValue(thisRef: OWNER, property: KProperty<*>, value: Float) {
-        parentStruct.buffer.putFloat(baseByteOffset + localByteOffset, value)
+    override fun setValue(thisRef: SimpleStruct, property: KProperty<*>, value: Float) {
+        thisRef.buffer.putFloat(thisRef.baseByteOffset + localByteOffset, value)
     }
-    override fun getValue(thisRef: OWNER, property: KProperty<*>) = parentStruct.buffer.getFloat(baseByteOffset + localByteOffset)
+    override fun getValue(thisRef: SimpleStruct, property: KProperty<*>) = thisRef.buffer.getFloat(thisRef.baseByteOffset + localByteOffset)
 }
 
-class DoubleProperty<OWNER>(private val parentStruct: SimpleStruct<*>, override var baseByteOffset: Int = 0, override var localByteOffset: Int): AbstractProperty<OWNER, Double>(java.lang.Double.BYTES) {
+class DoubleProperty(override var localByteOffset: Int): StructProperty<Double>(java.lang.Double.BYTES) {
 
-    override fun setValue(thisRef: OWNER, property: KProperty<*>, value: Double) {
-        parentStruct.buffer.putDouble(baseByteOffset + localByteOffset, value)
+    override fun setValue(thisRef: SimpleStruct, property: KProperty<*>, value: Double) {
+        thisRef.buffer.putDouble(thisRef.baseByteOffset + localByteOffset, value)
     }
-    override fun getValue(thisRef: OWNER, property: KProperty<*>) = parentStruct.buffer.getDouble(baseByteOffset + localByteOffset)
+    override fun getValue(thisRef: SimpleStruct, property: KProperty<*>) = thisRef.buffer.getDouble(thisRef.baseByteOffset + localByteOffset)
 }
-class LongProperty<OWNER>(private val parentStruct: SimpleStruct<*>, override var baseByteOffset: Int = 0, override var localByteOffset: Int): AbstractProperty<OWNER, Long>(java.lang.Long.BYTES) {
+class LongProperty(override var localByteOffset: Int): StructProperty<Long>(java.lang.Long.BYTES) {
 
-    override fun setValue(thisRef: OWNER, property: KProperty<*>, value: Long) {
-        parentStruct.buffer.putLong(baseByteOffset + localByteOffset, value)
+    override fun setValue(thisRef: SimpleStruct, property: KProperty<*>, value: Long) {
+        thisRef.buffer.putLong(thisRef.baseByteOffset + localByteOffset, value)
     }
-    override fun getValue(thisRef: OWNER, property: KProperty<*>) = parentStruct.buffer.getLong(baseByteOffset + localByteOffset)
+    override fun getValue(thisRef: SimpleStruct, property: KProperty<*>) = thisRef.buffer.getLong(thisRef.baseByteOffset + localByteOffset)
 }

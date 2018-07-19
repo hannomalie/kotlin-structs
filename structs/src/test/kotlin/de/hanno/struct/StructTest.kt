@@ -3,11 +3,11 @@ package de.hanno.struct
 import org.junit.Assert
 import org.junit.Test
 
-class NestedStructTest {
+class StructTest {
 
     @Test
     fun testNestedStructClass() {
-        class MyStruct: BaseStruct<MyStruct>() {
+        class MyStruct: BaseStruct() {
             val myInt by 0
             var myMutableInt by 0
             var myMutableFloat by 0.0f
@@ -31,7 +31,7 @@ class NestedStructTest {
 
     @Test
     fun testNestedStructClassFromAndToBuffer() {
-        class MyStruct: BaseStruct<MyStruct>() {
+        class MyStruct: BaseStruct() {
             val myInt by 0
             var myMutableInt by 0
         }
@@ -68,16 +68,16 @@ class NestedStructTest {
     @Test
     fun testNestedStruct() {
 
-        class SimpleNestedStruct(parent: Struct): BaseStruct<SimpleNestedStruct>(parent) {
+        class SimpleNestedStruct(parent: Struct): BaseStruct(parent) {
             var myMutableInt by 0
         }
 
-        class MyStruct : BaseStruct<MyStruct>() {
+        class MyStruct : BaseStruct() {
             val myInt by 0
+
             var myMutableFloat by 0.0f
             val nestedStruct: SimpleNestedStruct by SimpleNestedStruct(this@MyStruct)
         }
-
 
         val myStruct = MyStruct()
         Assert.assertEquals(3, myStruct.memberStructs.size)
@@ -89,12 +89,12 @@ class NestedStructTest {
         myStruct.myMutableFloat = 2.0f
         nested.myMutableInt = 99
         Assert.assertTrue(nested.memberStructs[0] is IntProperty)
-        Assert.assertEquals(8, nested.memberStructs[0].baseByteOffset)
+        Assert.assertEquals(8, nested.baseByteOffset)
         Assert.assertEquals(99, nested.myMutableInt)
         Assert.assertEquals(0, myStruct.myInt)
         Assert.assertTrue(myStruct.memberStructs[0] is IntProperty)
         Assert.assertTrue(myStruct.memberStructs[1] is FloatProperty)
-        Assert.assertTrue(myStruct.memberStructs[2] is ReadOnlyStructProperty)
+        Assert.assertTrue(myStruct.memberStructs[2] is StructProperty)
 
 
         myStruct.buffer.rewind()
@@ -105,7 +105,7 @@ class NestedStructTest {
 
     @Test
     fun testArrayStruct() {
-        class MyStructArray : BaseStruct<MyStructArray>() {
+        class MyStructArray : BaseStruct() {
         }
     }
 }

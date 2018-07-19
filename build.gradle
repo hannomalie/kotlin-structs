@@ -9,15 +9,12 @@ buildscript {
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
     }
 }
-plugins {
-    id 'java'
-    id "org.jetbrains.kotlin.jvm" version '1.2.40'
-}
-allprojects {
-    group 'de.hanno'
-    version '1.0-SNAPSHOT'
-    sourceCompatibility = 1.8
 
+allprojects {
+    group 'de.hanno.bufferables'
+    version '1.0-SNAPSHOT'
+}
+subprojects {
     repositories {
         mavenCentral()
         maven {
