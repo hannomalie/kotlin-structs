@@ -2,8 +2,50 @@ package de.hanno.struct
 
 import org.junit.Assert
 import org.junit.Test
+import org.lwjgl.BufferUtils
+import java.nio.ByteBuffer
 
 class StructTest {
+
+    @Test
+    fun testSimpleStructUnInitialized() {
+        class MyStruct: Struct() {
+            val myInt by 0
+            var myMutableFloat by 0.0f
+        }
+        val myStruct = MyStruct()
+        Assert.assertEquals(0, myStruct.myInt)
+        Assert.assertEquals(.0f, myStruct.myMutableFloat)
+    }
+
+    @Test
+    fun testSimpleStructInitialized() {
+        class MyStruct: Struct() {
+            override val buffer = BufferUtils.createByteBuffer(8)
+            val myInt by 2
+            var myMutableFloat by 4.0f
+        }
+        val myStruct = MyStruct()
+        Assert.assertEquals(2, myStruct.myInt)
+        Assert.assertEquals(4.0f, myStruct.myMutableFloat)
+    }
+
+    @Test
+    fun testNestedStructInitialized() {
+        class NestedStruct(parent: Structable?) : Struct(parent) {
+            var myMutableInt by 4
+        }
+        class MyStruct: Struct() {
+            override val buffer = BufferUtils.createByteBuffer(8)
+            val nestedStruct by NestedStruct(this)
+            var myMutableFloat by 4.0f
+        }
+        val myStruct = MyStruct()
+        Assert.assertEquals(4, myStruct.nestedStruct.myMutableInt)
+        myStruct.nestedStruct.myMutableInt = 99
+        Assert.assertEquals(99, myStruct.nestedStruct.myMutableInt)
+        Assert.assertEquals(4.0f, myStruct.myMutableFloat)
+    }
 
     @Test
     fun testNestedStructClass() {
@@ -12,7 +54,6 @@ class StructTest {
             var myMutableInt by 0
             var myMutableFloat by 0.0f
         }
-
 
         val myStruct = MyStruct().apply { myMutableInt = 4 }.apply { myMutableFloat = 2.0f }
 
@@ -50,7 +91,11 @@ class StructTest {
 
 
         val target = MyStruct()
+        Assert.assertTrue(source.usesOwnBuffer())
+        Assert.assertTrue(target.usesOwnBuffer())
         source.copyTo(target)
+        Assert.assertNotSame(source.buffer, target.buffer)
+        Assert.assertEquals(8, target.buffer.capacity())
         Assert.assertEquals(0, target.myInt)
         Assert.assertEquals(4, target.myMutableInt)
 

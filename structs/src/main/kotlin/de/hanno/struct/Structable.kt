@@ -1,7 +1,6 @@
 package de.hanno.struct
 
 import org.lwjgl.BufferUtils
-import java.lang.IllegalStateException
 import java.nio.ByteBuffer
 import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KProperty
@@ -20,16 +19,25 @@ interface Structable: Bufferable {
     fun getCurrentLocalByteOffset() = memberStructs.sumBy { it.sizeInBytes }
 
     operator fun Int.provideDelegate(thisRef: Structable, prop: KProperty<*>): IntProperty {
-        return IntProperty(getCurrentLocalByteOffset()).apply { thisRef.register(this@apply) }
+        return IntProperty(getCurrentLocalByteOffset())
+                .apply { thisRef.register(this@apply) }
+                .apply { if(this@provideDelegate != 0) this.setValue(thisRef, prop, this@provideDelegate) }
     }
     operator fun Float.provideDelegate(thisRef: Structable, prop: KProperty<*>): FloatProperty {
-        return FloatProperty(getCurrentLocalByteOffset()).apply { thisRef.register(this@apply) }
+        return FloatProperty(getCurrentLocalByteOffset())
+                .apply { thisRef.register(this@apply) }
+                .apply { if(this@provideDelegate != 0f) this.setValue(thisRef, prop, this@provideDelegate) }
     }
     operator fun Double.provideDelegate(thisRef: Structable, prop: KProperty<*>): DoubleProperty {
-        return DoubleProperty(getCurrentLocalByteOffset()).apply { thisRef.register(this@apply) }
+        return DoubleProperty(getCurrentLocalByteOffset())
+                .apply { thisRef.register(this@apply) }
+                .apply { this.setValue(thisRef, prop, this@provideDelegate) }
+                .apply { if(this@provideDelegate != .0) this.setValue(thisRef, prop, this@provideDelegate) }
     }
     operator fun Long.provideDelegate(thisRef: Structable, prop: KProperty<*>): LongProperty {
-        return LongProperty(getCurrentLocalByteOffset()).apply { thisRef.register(this@apply) }
+        return LongProperty(getCurrentLocalByteOffset())
+                .apply { thisRef.register(this@apply) }
+                .apply { if(this@provideDelegate != 0L) this.setValue(thisRef, prop, this@provideDelegate) }
     }
 
     operator fun <FIELD: Structable> FIELD.provideDelegate(thisRef: Structable, prop: KProperty<*>): GenericStructProperty<Structable, FIELD> {
@@ -55,7 +63,11 @@ interface Structable: Bufferable {
     }
 }
 
-fun <T: Bufferable> T.copyTo(target: T) {
+@JvmOverloads fun <T: Bufferable> T.copyTo(target: T, rewindBuffersBefore: Boolean = true) {
+    if(rewindBuffersBefore) {
+        buffer.rewind()
+        target.buffer.rewind()
+    }
     target.buffer.put(buffer)
 }
 fun <T: Bufferable, S: Bufferable> T.copyToOther(target: S) {
@@ -84,10 +96,11 @@ abstract class Struct(open val parent: Structable? = null): Structable {
                 tmpParent.baseByteOffset + field
             } else field
         }
-    private val reserveBuffer by lazy { BufferUtils.createByteBuffer(sizeInBytes) }
+    private val ownBuffer by lazy { BufferUtils.createByteBuffer(sizeInBytes) }
     override val buffer by lazy {
-        parent?.buffer ?: reserveBuffer
+        parent?.buffer ?: ownBuffer
     }
+    fun usesOwnBuffer(): Boolean = ownBuffer === buffer
 }
 
 private val emptyBuffer = BufferUtils.createByteBuffer(0)
