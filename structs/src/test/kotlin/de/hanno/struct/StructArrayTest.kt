@@ -13,7 +13,7 @@ class StructArrayTest {
     }
 
     @Test
-    fun testSimpleStructArray() {
+    fun testStructArray() {
         prepareAnArray()
     }
 

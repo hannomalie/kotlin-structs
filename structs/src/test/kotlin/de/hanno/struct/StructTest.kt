@@ -7,7 +7,7 @@ class StructTest {
 
     @Test
     fun testNestedStructClass() {
-        class MyStruct: BaseStruct() {
+        class MyStruct: Struct() {
             val myInt by 0
             var myMutableInt by 0
             var myMutableFloat by 0.0f
@@ -31,7 +31,7 @@ class StructTest {
 
     @Test
     fun testNestedStructClassFromAndToBuffer() {
-        class MyStruct: BaseStruct() {
+        class MyStruct: Struct() {
             val myInt by 0
             var myMutableInt by 0
         }
@@ -68,15 +68,15 @@ class StructTest {
     @Test
     fun testNestedStruct() {
 
-        class SimpleNestedStruct(parent: Struct): BaseStruct(parent) {
+        class SimpleNestedStruct(parent: Structable): Struct(parent) {
             var myMutableInt by 0
         }
-        class ComplexNestedStruct(parent: Struct): BaseStruct(parent) {
+        class ComplexNestedStruct(parent: Structable): Struct(parent) {
             var myMutableInt by 0
             var nestedStruct by SimpleNestedStruct(this)
         }
 
-        class MyStruct : BaseStruct() {
+        class MyStruct : Struct() {
             val myInt by 0
             var myMutableFloat by 0.0f
             val simpleNestedStruct: SimpleNestedStruct by SimpleNestedStruct(this)
@@ -99,9 +99,17 @@ class StructTest {
         Assert.assertEquals(99, simpleNestedStruct.myMutableInt)
         Assert.assertEquals(0, myStruct.myInt)
         Assert.assertTrue(myStruct.memberStructs[0] is IntProperty)
+        Assert.assertEquals(0, myStruct.memberStructs[0].localByteOffset)
+        Assert.assertEquals(4, myStruct.memberStructs[0].sizeInBytes)
         Assert.assertTrue(myStruct.memberStructs[1] is FloatProperty)
+        Assert.assertEquals(4, myStruct.memberStructs[1].localByteOffset)
+        Assert.assertEquals(4, myStruct.memberStructs[1].sizeInBytes)
         Assert.assertNotNull(myStruct.memberStructs[2])
+        Assert.assertEquals(8, myStruct.memberStructs[2].localByteOffset)
+        Assert.assertEquals(4, myStruct.memberStructs[2].sizeInBytes)
         Assert.assertNotNull(myStruct.memberStructs[3])
+        Assert.assertEquals(12, myStruct.memberStructs[3].localByteOffset)
+        Assert.assertEquals(8, myStruct.memberStructs[3].sizeInBytes)
 
         Assert.assertEquals(12, complexNestedStruct.baseByteOffset)
         complexNestedStruct.myMutableInt = 18
