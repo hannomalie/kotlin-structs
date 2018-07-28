@@ -11,7 +11,7 @@ buildscript {
 }
 
 allprojects {
-    group 'de.hanno.bufferables'
+    group 'de.hanno.structs'
     version '1.0-SNAPSHOT'
 }
 subprojects {

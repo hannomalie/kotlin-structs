@@ -1,6 +1,7 @@
 package de.hanno.struct
 
 import org.lwjgl.BufferUtils
+import java.lang.IllegalStateException
 import java.nio.ByteBuffer
 import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KProperty
@@ -14,6 +15,8 @@ interface Bufferable: Sizable {
 }
 
 interface Struct: Bufferable {
+    val parent: Struct?
+    val baseByteOffset: Int
     val memberStructs: MutableList<StructProperty<*>>
     fun getCurrentLocalByteOffset() = memberStructs.sumBy { it.sizeInBytes }
 }
@@ -29,8 +32,6 @@ fun <T: Bufferable> T.copyFrom(target: T) {
 }
 
 interface SimpleStruct : Struct {
-    val parent: Struct?
-    val baseByteOffset: Int
 
     operator fun Int.provideDelegate(thisRef: SimpleStruct, prop: KProperty<*>): IntProperty {
         return IntProperty(getCurrentLocalByteOffset()).apply { thisRef.register(this@apply) }
@@ -70,27 +71,29 @@ abstract class BaseStruct(override val parent: Struct? = null): SimpleStruct {
     override val sizeInBytes by lazy {
         memberStructs.sumBy { it.sizeInBytes }
     }
-//    override val sizeInBytes
-//        get() = memberStructs.sumBy { it.sizeInBytes }
-    override val baseByteOffset = parent?.getCurrentLocalByteOffset() ?: 0
+    override val baseByteOffset: Int = parent?.getCurrentLocalByteOffset() ?: 0
+        get() = if(parent != null) parent?.baseByteOffset!! + field else field
+    private val reserveBuffer by lazy { BufferUtils.createByteBuffer(sizeInBytes) }
     override val buffer by lazy {
-        parent?.buffer ?: BufferUtils.createByteBuffer(sizeInBytes)
+        val tmpParent = parent
+        tmpParent?.buffer ?: reserveBuffer
     }
 }
 
+private val emptyBuffer = BufferUtils.createByteBuffer(0)
 abstract class SlidingWindow : BaseStruct() {
     override var parent: Struct? = null
         set(value) {
             field = value
-            buffer = value?.buffer
-            baseByteOffset = value?.buffer?.position() ?: 0
+            buffer = value?.buffer ?: throw IllegalStateException("Parent doesn't have a buffer!")
+            baseByteOffset = value.buffer.position()
         }
     override val memberStructs = mutableListOf<StructProperty<*>>()
     override val sizeInBytes by lazy {
         memberStructs.sumBy { it.sizeInBytes }
     }
     override var baseByteOffset = 0
-    override var buffer: ByteBuffer? = parent?.buffer
+    override var buffer: ByteBuffer = parent?.buffer ?: emptyBuffer
 }
 
 interface GenericStructProperty<OWNER_TYPE: SimpleStruct, FIELD_TYPE> : ReadWriteProperty<OWNER_TYPE, FIELD_TYPE>

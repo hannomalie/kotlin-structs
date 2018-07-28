@@ -3,6 +3,8 @@ package de.hanno.struct
 import org.junit.Assert
 import org.junit.Assert.assertEquals
 import org.junit.Test
+import org.lwjgl.BufferUtils
+import java.nio.ByteBuffer
 
 class StructArrayTest {
 
@@ -23,6 +25,19 @@ class StructArrayTest {
         source.copyTo(target)
 
         checkResultArray(target)
+    }
+
+    @Test
+    fun testStructArrayCopyToBuffer() {
+        val source = prepareAnArray()
+        val target = BufferUtils.createByteBuffer(MyStruct().sizeInBytes*10)
+
+        source.copyTo(target)
+
+        target.rewind()
+        for(i in 0..9) {
+            Assert.assertEquals(i, target.int)
+        }
     }
 
     @Test

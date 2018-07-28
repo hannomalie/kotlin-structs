@@ -71,30 +71,44 @@ class StructTest {
         class SimpleNestedStruct(parent: Struct): BaseStruct(parent) {
             var myMutableInt by 0
         }
+        class ComplexNestedStruct(parent: Struct): BaseStruct(parent) {
+            var myMutableInt by 0
+            var nestedStruct by SimpleNestedStruct(this)
+        }
 
         class MyStruct : BaseStruct() {
             val myInt by 0
-
             var myMutableFloat by 0.0f
-            val nestedStruct: SimpleNestedStruct by SimpleNestedStruct(this@MyStruct)
+            val simpleNestedStruct: SimpleNestedStruct by SimpleNestedStruct(this)
+            val complexNestedStruct: ComplexNestedStruct by ComplexNestedStruct(this)
         }
 
         val myStruct = MyStruct()
-        Assert.assertEquals(3, myStruct.memberStructs.size)
-        val nested = myStruct.nestedStruct
+        Assert.assertEquals(4, myStruct.memberStructs.size)
+        val simpleNestedStruct = myStruct.simpleNestedStruct
+        val complexNestedStruct = myStruct.complexNestedStruct
 
-        Assert.assertEquals(myStruct.buffer, nested.buffer)
-        Assert.assertEquals(12, myStruct.sizeInBytes)
+        Assert.assertEquals(myStruct.buffer, simpleNestedStruct.buffer)
+        Assert.assertEquals(myStruct.buffer, complexNestedStruct.buffer)
+        Assert.assertEquals(20, myStruct.sizeInBytes)
 
         myStruct.myMutableFloat = 2.0f
-        nested.myMutableInt = 99
-        Assert.assertTrue(nested.memberStructs[0] is IntProperty)
-        Assert.assertEquals(8, nested.baseByteOffset)
-        Assert.assertEquals(99, nested.myMutableInt)
+        simpleNestedStruct.myMutableInt = 99
+        Assert.assertTrue(simpleNestedStruct.memberStructs[0] is IntProperty)
+        Assert.assertEquals(8, simpleNestedStruct.baseByteOffset)
+        Assert.assertEquals(99, simpleNestedStruct.myMutableInt)
         Assert.assertEquals(0, myStruct.myInt)
         Assert.assertTrue(myStruct.memberStructs[0] is IntProperty)
         Assert.assertTrue(myStruct.memberStructs[1] is FloatProperty)
-        Assert.assertTrue(myStruct.memberStructs[2] is StructProperty)
+        Assert.assertNotNull(myStruct.memberStructs[2])
+        Assert.assertNotNull(myStruct.memberStructs[3])
+
+        Assert.assertEquals(12, complexNestedStruct.baseByteOffset)
+        complexNestedStruct.myMutableInt = 18
+        Assert.assertEquals(18, complexNestedStruct.myMutableInt)
+
+        complexNestedStruct.nestedStruct.myMutableInt = 27
+        Assert.assertEquals(27, complexNestedStruct.nestedStruct.myMutableInt)
 
 
         myStruct.buffer.rewind()
@@ -103,11 +117,6 @@ class StructTest {
         Assert.assertEquals(99, myStruct.buffer.int)
     }
 
-    @Test
-    fun testArrayStruct() {
-        class MyStructArray : BaseStruct() {
-        }
-    }
 }
 
 
