@@ -18,6 +18,15 @@ class StructArrayTest {
     }
 
     @Test
+    fun testGetAtIndex() {
+        val array = prepareAnArray()
+
+        for(i in 0..9) {
+            Assert.assertEquals(i, array.getAtIndex(i).myInt)
+        }
+    }
+
+    @Test
     fun testStructArrayCopy() {
         val source = prepareAnArray()
         val target = de.hanno.struct.StructArray(10) { MyStruct() }

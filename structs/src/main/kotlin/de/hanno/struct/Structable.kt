@@ -97,9 +97,8 @@ abstract class Struct(open val parent: Structable? = null): Structable {
             } else field
         }
     private val ownBuffer by lazy { BufferUtils.createByteBuffer(sizeInBytes) }
-    override val buffer by lazy {
-        parent?.buffer ?: ownBuffer
-    }
+    override val buffer
+        get() = parent?.buffer ?: ownBuffer
     fun usesOwnBuffer(): Boolean = ownBuffer === buffer
 }
 

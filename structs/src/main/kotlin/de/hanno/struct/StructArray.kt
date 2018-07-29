@@ -34,6 +34,13 @@ class StructArray<T: SlidingWindow>(val size: Int, val factory: () -> T) {
     @JvmOverloads fun forEachIndexed(rewindBuffer: Boolean = true, function: (Int, T) -> Unit) {
         buffer.forEachIndexed(rewindBuffer, slidingWindow, function)
     }
+
+    fun getAtIndex(index: Int) : T {
+        slidingWindow.buffer = this.buffer
+        slidingWindow.baseByteOffset = index * slidingWindow.sizeInBytes
+        buffer.position(index * slidingWindow.sizeInBytes)
+        return slidingWindow
+    }
 }
 
 @JvmOverloads fun <T: SlidingWindow> StructArray<T>.copyTo(target: StructArray<T>, rewindBuffers: Boolean = true) {
