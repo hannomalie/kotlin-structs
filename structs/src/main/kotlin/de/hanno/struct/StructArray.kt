@@ -3,10 +3,16 @@ package de.hanno.struct
 import org.lwjgl.BufferUtils
 import java.nio.ByteBuffer
 
-class StructArray<T: SlidingWindow>(val size: Int, val factory: () -> T) {
-    val slidingWindow = factory()
-    var buffer = BufferUtils.createByteBuffer(size* slidingWindow.sizeInBytes)
-        private set
+class StructArray<T: Struct>(parent: Struct? = null, val size: Int, val factory: (Struct) -> T): Struct(parent) {
+    private var tempBuffer: ByteBuffer? = null
+    override val buffer
+        get() = parent?.buffer ?: tempBuffer ?: ownBuffer
+
+    override val baseByteOffset = parent?.getCurrentLocalByteOffset() ?: 0
+
+    val slidingWindow = factory(this)
+    override val sizeInBytes: Int
+        get() = size * slidingWindow.sizeInBytes
 
     fun shrink(sizeInBytes: Int, copyContent: Boolean = true) = if(buffer.capacity() > sizeInBytes) {
         resize(sizeInBytes, copyContent)
@@ -24,7 +30,7 @@ class StructArray<T: SlidingWindow>(val size: Int, val factory: () -> T) {
             val oldBuffer = buffer
             oldBuffer.copyTo(newBuffer, true)
         }
-        buffer = newBuffer
+        tempBuffer = newBuffer
     }
 
     @JvmOverloads fun forEach(rewindBuffer: Boolean = true, function: (T) -> Unit) {
@@ -36,22 +42,20 @@ class StructArray<T: SlidingWindow>(val size: Int, val factory: () -> T) {
     }
 
     fun getAtIndex(index: Int) : T {
-        slidingWindow.buffer = this.buffer
-        slidingWindow.baseByteOffset = index * slidingWindow.sizeInBytes
-        buffer.position(index * slidingWindow.sizeInBytes)
+        slidingWindow.slidingWindowOffset = index * slidingWindow.sizeInBytes
         return slidingWindow
     }
 }
 
-@JvmOverloads fun <T: SlidingWindow> StructArray<T>.copyTo(target: StructArray<T>, rewindBuffers: Boolean = true) {
+@JvmOverloads fun <T: Struct> StructArray<T>.copyTo(target: StructArray<T>, rewindBuffers: Boolean = true) {
     copyTo(target.buffer, rewindBuffers)
 }
-@JvmOverloads fun <T: SlidingWindow> StructArray<T>.copyTo(target: ByteBuffer, rewindBuffers: Boolean = true) {
+@JvmOverloads fun <T: Struct> StructArray<T>.copyTo(target: ByteBuffer, rewindBuffers: Boolean = true) {
     buffer.copyTo(target, rewindBuffers)
 }
 
-@JvmOverloads fun <T: SlidingWindow> StructArray<T>.clone(rewindBuffer: Boolean = true): StructArray<T> {
-    return de.hanno.struct.StructArray(this.size, this.factory).apply {
+@JvmOverloads fun <T: Struct> StructArray<T>.clone(rewindBuffer: Boolean = true): StructArray<T> {
+    return de.hanno.struct.StructArray(size = this.size, factory = this.factory).apply {
         this@clone.copyTo(this@apply, true)
         if(rewindBuffer) {
             this.buffer.rewind()
@@ -98,29 +102,27 @@ class StructArray<T: SlidingWindow>(val size: Int, val factory: () -> T) {
     }
 }
 
-@JvmOverloads fun <T:SlidingWindow> ByteBuffer.forEach(rewindBuffer: Boolean = true, slidingWindow: T, function: (T) -> Unit) {
+@JvmOverloads fun <T:Struct> ByteBuffer.forEach(rewindBuffer: Boolean = true, slidingWindow: T, function: (T) -> Unit) {
     if (rewindBuffer) {
         rewind()
     }
-    while(position() <= capacity() - slidingWindow.sizeInBytes) {
-        slidingWindow.buffer = this
-        slidingWindow.baseByteOffset = position()
+    var counter = 0
+    while(counter*slidingWindow.sizeInBytes <= capacity() - slidingWindow.sizeInBytes) {
+        slidingWindow.slidingWindowOffset = counter * slidingWindow.sizeInBytes
         function(slidingWindow)
-        position(position() + slidingWindow.sizeInBytes)
+        counter++
     }
 }
-@JvmOverloads fun <T:SlidingWindow> ByteBuffer.forEachIndexed(rewindBuffer: Boolean = true, slidingWindow: T, function: (Int, T) -> Unit) {
+@JvmOverloads fun <T:Struct> ByteBuffer.forEachIndexed(rewindBuffer: Boolean = true, slidingWindow: T, function: (Int, T) -> Unit) {
     val positionBefore = position()
     if (rewindBuffer) {
         rewind()
     }
 
     var counter = 0
-    while(position() <= capacity() - slidingWindow.sizeInBytes) {
-        slidingWindow.buffer = this
-        slidingWindow.baseByteOffset = position()
+    while(counter*slidingWindow.sizeInBytes <= capacity() - slidingWindow.sizeInBytes) {
+        slidingWindow.slidingWindowOffset = counter * slidingWindow.sizeInBytes
         function(counter, slidingWindow)
-        position(position() + slidingWindow.sizeInBytes)
         counter++
     }
 

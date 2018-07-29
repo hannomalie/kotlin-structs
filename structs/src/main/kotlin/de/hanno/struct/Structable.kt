@@ -93,21 +93,15 @@ abstract class Struct(open val parent: Structable? = null): Structable {
         get() {
             val tmpParent = parent
             return if(tmpParent != null) {
-                tmpParent.baseByteOffset + field
+                tmpParent.baseByteOffset + slidingWindowOffset + field
             } else field
         }
-    private val ownBuffer by lazy { BufferUtils.createByteBuffer(sizeInBytes) }
+
+    internal var slidingWindowOffset = 0
+    protected open val ownBuffer by lazy { BufferUtils.createByteBuffer(sizeInBytes) }
     override val buffer
         get() = parent?.buffer ?: ownBuffer
     fun usesOwnBuffer(): Boolean = ownBuffer === buffer
-}
-
-private val emptyBuffer = BufferUtils.createByteBuffer(0)
-abstract class SlidingWindow : Struct() {
-    override var baseByteOffset: Int = 0
-        get() = buffer.position()
-    override var buffer: ByteBuffer = emptyBuffer
-        get() = parent?.buffer ?: field
 }
 
 interface StructProperty {
