@@ -28,7 +28,7 @@ class StructArray<T: Struct>(parent: Struct? = null, val size: Int, val factory:
         val newBuffer = BufferUtils.createByteBuffer(sizeInBytes)
         if(copyContent) {
             val oldBuffer = buffer
-            oldBuffer.copyTo(newBuffer, true)
+            oldBuffer.copyTo(newBuffer, true, 0)
         }
         tempBuffer = newBuffer
     }
@@ -51,7 +51,7 @@ class StructArray<T: Struct>(parent: Struct? = null, val size: Int, val factory:
     copyTo(target.buffer, rewindBuffers)
 }
 @JvmOverloads fun <T: Struct> StructArray<T>.copyTo(target: ByteBuffer, rewindBuffers: Boolean = true) {
-    buffer.copyTo(target, rewindBuffers)
+    buffer.copyTo(target, rewindBuffers, 0)
 }
 
 @JvmOverloads fun <T: Struct> StructArray<T>.clone(rewindBuffer: Boolean = true): StructArray<T> {
@@ -62,17 +62,18 @@ class StructArray<T: Struct>(parent: Struct? = null, val size: Int, val factory:
         }
     }
 }
-@JvmOverloads fun ByteBuffer.copyTo(target: ByteBuffer, rewindBuffers: Boolean = true) {
+@JvmOverloads fun ByteBuffer.copyTo(target: ByteBuffer, rewindBuffers: Boolean = true, targetOffset: Int = 0) {
     val positionBefore = position()
     if(rewindBuffers) {
         rewind()
         target.rewind()
     }
-    if(capacity() > target.capacity()) {
+    if(capacity() > target.capacity() - targetOffset) {
         val array = toArray(true, target.capacity())
-        target.put(array, 0, array.size)
+        target.put(array, targetOffset, array.size)
         target.rewind()
     } else {
+        if(positionBefore != targetOffset) { target.position(targetOffset) }
         target.put(this)
     }
     if(rewindBuffers) {
