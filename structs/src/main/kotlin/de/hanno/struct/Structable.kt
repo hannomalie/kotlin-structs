@@ -89,10 +89,9 @@ abstract class Struct(val parent: Structable? = null): Structable {
     override val sizeInBytes by lazy {
         memberStructs.sumBy { it.sizeInBytes }
     }
-    private val cachedParentBaseByteOffset = parent?.baseByteOffset ?: 0
     override val baseByteOffset: Int = parent?.getCurrentLocalByteOffset() ?: 0
         get() {
-            return field + cachedParentBaseByteOffset + slidingWindowOffset
+            return field + (parent?.baseByteOffset ?: 0) + slidingWindowOffset
         }
 
     internal var slidingWindowOffset = 0
