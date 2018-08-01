@@ -9,8 +9,8 @@ import org.openjdk.jmh.infra.Blackhole;
 
 import java.util.ArrayList;
 
-import static de.hanno.struct.StaticStructArrayKt.copyTo;
-import static de.hanno.struct.StaticStructArrayKt.forEach;
+import static de.hanno.struct.StructArrayKt.copyTo;
+import static de.hanno.struct.StructArrayKt.forEach;
 
 public class StructBenchmark {
 

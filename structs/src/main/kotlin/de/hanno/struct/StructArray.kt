@@ -38,23 +38,30 @@ class ResizableStructArray<T:Struct>(parent: Struct? = null, override var size: 
         return slidingWindow
     }
 
+    fun shrinkToBytes(sizeInBytes: Int, copyContent: Boolean = true) = shrink(sizeInBytes/slidingWindow.sizeInBytes, copyContent)
+
     fun shrink(size: Int, copyContent: Boolean = true) = if(buffer.capacity() > (size*slidingWindow.sizeInBytes)) {
         resize(size, copyContent)
         true
     } else false
+
+    fun enlargeToBytes(size: Int, copyContent: Boolean = true) = enlarge(size/slidingWindow.sizeInBytes, copyContent)
 
     fun enlarge(size: Int, copyContent: Boolean = true) = if(buffer.capacity() < (size*slidingWindow.sizeInBytes)) {
         resize(size, copyContent)
         true
     } else false
 
+    fun resizeToBytes(size: Int, copyContent: Boolean = true) = resize(size/slidingWindow.sizeInBytes, copyContent)
+
     fun resize(size: Int, copyContent: Boolean = true) {
-        val newBuffer = BufferUtils.createByteBuffer(size * slidingWindow.sizeInBytes)
+        val targetSize = Math.max(1, size)
+        val newBuffer = BufferUtils.createByteBuffer(targetSize * slidingWindow.sizeInBytes)
         if(copyContent) {
             val oldBuffer = buffer
             oldBuffer.copyTo(newBuffer, true, 0)
         }
-        this.size = size
+        this.size = targetSize
         buffer = newBuffer
     }
 }
@@ -75,16 +82,8 @@ class ResizableStructArray<T:Struct>(parent: Struct? = null, override var size: 
     buffer.copyTo(target, rewindBuffers, 0)
 }
 
-@JvmOverloads fun <T: Struct> StaticStructArray<T>.clone(rewindBuffer: Boolean = true): StaticStructArray<T> {
+@JvmOverloads fun <T: Struct> StructArray<T>.clone(rewindBuffer: Boolean = true): StaticStructArray<T> {
     return StaticStructArray(size = this.size, factory = this.factory).apply {
-        this@clone.copyTo(this@apply, true)
-        if(rewindBuffer) {
-            this.buffer.rewind()
-        }
-    }
-}
-@JvmOverloads fun <T: Struct> ResizableStructArray<T>.clone(rewindBuffer: Boolean = true): ResizableStructArray<T> {
-    return ResizableStructArray(size = this.size, factory = this.factory).apply {
         this@clone.copyTo(this@apply, true)
         if(rewindBuffer) {
             this.buffer.rewind()
