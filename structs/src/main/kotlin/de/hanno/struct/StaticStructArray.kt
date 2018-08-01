@@ -2,68 +2,96 @@ package de.hanno.struct
 
 import org.lwjgl.BufferUtils
 import java.nio.ByteBuffer
-import java.util.concurrent.CompletableFuture
 
-class StructArray<T: Struct>(parent: Struct? = null, val size: Int, val factory: (Struct) -> T): Struct(parent) {
-    private var tempBuffer: ByteBuffer? = null
-    override val buffer
-        get() = parent?.buffer ?: tempBuffer ?: ownBuffer
+interface StructArray<T>: Structable {
+    val slidingWindow: T
+    val size: Int
+    val factory: (Struct) -> T
+    fun getAtIndex(index: Int) : T
+}
 
+class StaticStructArray<T: Struct>(parent: Struct? = null, override val size: Int, override val factory: (Struct) -> T): StructArray<T>, Struct(parent) {
     override val baseByteOffset = parent?.getCurrentLocalByteOffset() ?: 0
+    override val slidingWindow = factory(this)
+    override val sizeInBytes = size * slidingWindow.sizeInBytes
 
-    val slidingWindow = factory(this)
-    override val sizeInBytes by lazy {
-        size * slidingWindow.sizeInBytes
-    }
-
-    fun shrink(sizeInBytes: Int, copyContent: Boolean = true) = if(buffer.capacity() > sizeInBytes) {
-        resize(sizeInBytes, copyContent)
-        true
-    } else false
-
-    fun enlarge(sizeInBytes: Int, copyContent: Boolean = true) = if(buffer.capacity() < sizeInBytes) {
-        resize(sizeInBytes, copyContent)
-        true
-    } else false
-
-    fun resize(sizeInBytes: Int, copyContent: Boolean = true) {
-        val newBuffer = BufferUtils.createByteBuffer(sizeInBytes)
-        if(copyContent) {
-            val oldBuffer = buffer
-            oldBuffer.copyTo(newBuffer, true, 0)
-        }
-        tempBuffer = newBuffer
-    }
-
-    @JvmOverloads fun forEach(rewindBuffer: Boolean = true, function: (T) -> Unit) {
-        buffer.forEach(rewindBuffer, slidingWindow, function)
-    }
-
-    @JvmOverloads fun forEachIndexed(rewindBuffer: Boolean = true, function: (Int, T) -> Unit) {
-        buffer.forEachIndexed(rewindBuffer, slidingWindow, function)
-    }
-
-    fun getAtIndex(index: Int) : T {
+    override fun getAtIndex(index: Int) : T {
         slidingWindow.slidingWindowOffset = index * slidingWindow.sizeInBytes
         return slidingWindow
     }
 }
 
+class ResizableStructArray<T:Struct>(parent: Struct? = null, override var size: Int, override val factory: (Struct) -> T): StructArray<T>, Struct(parent) {
+    override val baseByteOffset = parent?.getCurrentLocalByteOffset() ?: 0
+    override var slidingWindow = factory(this)
+    override val sizeInBytes = size * slidingWindow.sizeInBytes
+
+
+    override var buffer: ByteBuffer = super.buffer
+        set(value) {
+            field = value
+            slidingWindow = factory(this)
+        }
+
+    override fun getAtIndex(index: Int) : T {
+        slidingWindow.slidingWindowOffset = index * slidingWindow.sizeInBytes
+        return slidingWindow
+    }
+
+    fun shrink(size: Int, copyContent: Boolean = true) = if(buffer.capacity() > (size*slidingWindow.sizeInBytes)) {
+        resize(size, copyContent)
+        true
+    } else false
+
+    fun enlarge(size: Int, copyContent: Boolean = true) = if(buffer.capacity() < (size*slidingWindow.sizeInBytes)) {
+        resize(size, copyContent)
+        true
+    } else false
+
+    fun resize(size: Int, copyContent: Boolean = true) {
+        val newBuffer = BufferUtils.createByteBuffer(size * slidingWindow.sizeInBytes)
+        if(copyContent) {
+            val oldBuffer = buffer
+            oldBuffer.copyTo(newBuffer, true, 0)
+        }
+        this.size = size
+        buffer = newBuffer
+    }
+}
+
+@JvmOverloads fun <T:Struct> StructArray<T>.forEach(rewindBuffer: Boolean = true, function: (T) -> Unit) {
+    buffer.forEach(rewindBuffer, slidingWindow, function)
+}
+
+@JvmOverloads fun <T:Struct> StructArray<T>.forEachIndexed(rewindBuffer: Boolean = true, function: (Int, T) -> Unit) {
+    this.buffer.forEachIndexed(rewindBuffer, slidingWindow, function)
+}
+
 @JvmOverloads fun <T: Struct> StructArray<T>.copyTo(target: StructArray<T>, rewindBuffers: Boolean = true) {
     copyTo(target.buffer, rewindBuffers)
 }
+
 @JvmOverloads fun <T: Struct> StructArray<T>.copyTo(target: ByteBuffer, rewindBuffers: Boolean = true) {
     buffer.copyTo(target, rewindBuffers, 0)
 }
 
-@JvmOverloads fun <T: Struct> StructArray<T>.clone(rewindBuffer: Boolean = true): StructArray<T> {
-    return de.hanno.struct.StructArray(size = this.size, factory = this.factory).apply {
+@JvmOverloads fun <T: Struct> StaticStructArray<T>.clone(rewindBuffer: Boolean = true): StaticStructArray<T> {
+    return StaticStructArray(size = this.size, factory = this.factory).apply {
         this@clone.copyTo(this@apply, true)
         if(rewindBuffer) {
             this.buffer.rewind()
         }
     }
 }
+@JvmOverloads fun <T: Struct> ResizableStructArray<T>.clone(rewindBuffer: Boolean = true): ResizableStructArray<T> {
+    return ResizableStructArray(size = this.size, factory = this.factory).apply {
+        this@clone.copyTo(this@apply, true)
+        if(rewindBuffer) {
+            this.buffer.rewind()
+        }
+    }
+}
+
 @JvmOverloads fun ByteBuffer.copyTo(target: ByteBuffer, rewindBuffers: Boolean = true, targetOffset: Int = 0) {
     val positionBefore = position()
     if(rewindBuffers) {

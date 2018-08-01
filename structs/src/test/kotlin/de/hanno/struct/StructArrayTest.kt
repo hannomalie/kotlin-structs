@@ -25,12 +25,21 @@ class StructArrayTest {
             Assert.assertEquals(i, array.getAtIndex(i).myInt)
         }
     }
+    @Test
+    fun testGetAtIndexResizable() {
+        val array = prepareAResizableArray()
+        array.resize(11)
+
+        for(i in 0..9) {
+            Assert.assertEquals(i, array.getAtIndex(i).myInt)
+        }
+    }
 
     @Test
     fun testArrayInStruct() {
         class ArrayHolderStruct : Struct() {
             var myInt by 0
-            var nestedArray by StructArray(this, 10) { MyStruct(it) }
+            var nestedArray by StaticStructArray(this, 10) { MyStruct(it) }
         }
 
         val holder = ArrayHolderStruct()
@@ -62,7 +71,7 @@ class StructArrayTest {
     @Test
     fun testStructArrayCopy() {
         val source = prepareAnArray()
-        val target = de.hanno.struct.StructArray(null, 10) { MyStruct(it) }
+        val target = de.hanno.struct.StaticStructArray(null, 10) { MyStruct(it) }
 
         source.copyTo(target)
 
@@ -100,9 +109,44 @@ class StructArrayTest {
         checkResultArray(target)
     }
 
-    private fun prepareAnArray(): StructArray<MyStruct> {
+    @Test
+    fun testResize() {
+        val source = ResizableStructArray(null, 10){ MyStruct(it) }
+        Assert.assertEquals(10, source.size)
 
-        val structArray = de.hanno.struct.StructArray(null, 10) { MyStruct(it) }
+        var bufferBefore = source.buffer
+        source.resize(20)
+        Assert.assertNotSame(source.buffer, bufferBefore)
+        Assert.assertEquals(20, source.size)
+
+        bufferBefore = source.buffer
+        source.shrink(5)
+        Assert.assertNotSame(source.buffer, bufferBefore)
+        Assert.assertEquals(5, source.size)
+
+        bufferBefore = source.buffer
+        source.enlarge(7)
+        Assert.assertNotSame(source.buffer, bufferBefore)
+        Assert.assertEquals(7, source.size)
+    }
+
+    private fun prepareAnArray(): StaticStructArray<MyStruct> {
+
+        val structArray = StaticStructArray(null, 10) { MyStruct(it) }
+
+        structArray.forEachIndexed { index, current ->
+            assertSame(current.buffer, structArray.buffer)
+            assertEquals((index) * current.sizeInBytes, current.slidingWindowOffset)
+            current.myInt = index
+        }
+
+        checkResultArray(structArray)
+
+        return structArray
+    }
+    private fun prepareAResizableArray(): ResizableStructArray<MyStruct> {
+
+        val structArray = ResizableStructArray(null, 10) { MyStruct(it) }
 
         structArray.forEachIndexed { index, current ->
             assertSame(current.buffer, structArray.buffer)
@@ -136,7 +180,7 @@ class StructArrayTest {
         }
 
         @JvmStatic fun main(args: Array<String>) {
-            val array = StructArray(null, 20000) { MyStruct(it) }
+            val array = StaticStructArray(null, 20000) { MyStruct(it) }
             while (true) {
                 array.forEach {
                     it.myInt++

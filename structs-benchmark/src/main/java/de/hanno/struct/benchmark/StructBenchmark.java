@@ -1,6 +1,6 @@
 package de.hanno.struct.benchmark;
 
-import de.hanno.struct.StructArray;
+import de.hanno.struct.StaticStructArray;
 import kotlin.Unit;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Measurement;
@@ -9,17 +9,20 @@ import org.openjdk.jmh.infra.Blackhole;
 
 import java.util.ArrayList;
 
-import static de.hanno.struct.StructArrayKt.copyTo;
+import static de.hanno.struct.StaticStructArrayKt.copyTo;
+import static de.hanno.struct.StaticStructArrayKt.forEach;
 
 public class StructBenchmark {
 
     static final int size = 5000;
 
-    static StructArray<JavaStruct> structArray = new StructArray<>(null, size, it -> new JavaStruct(it));
+    static StaticStructArray<JavaStruct> structArray = new StaticStructArray<>(null, size, it -> new JavaStruct(it));
     static ArrayList<JavaVanilla> vanillaArrayList = new ArrayList<>(size);
 
-    static StructArray<JavaMutableStruct> mutableStructArray = new StructArray<>(null, size, it -> new JavaMutableStruct(it));
+    static StaticStructArray<JavaMutableStruct> mutableStructArray = new StaticStructArray<>(null, size, it -> new JavaMutableStruct(it));
     static ArrayList<JavaMutableVanilla> mutableVanillaArrayList = new ArrayList<>(size);
+
+    static StaticStructArray<JavaMutableStruct> resizableMutableStructArray = new StaticStructArray<>(null, size, it -> new JavaMutableStruct(it));
 
     static {
         for (int i = 0; i < size; i++) {
@@ -29,14 +32,14 @@ public class StructBenchmark {
 
     }
 
-    static StructArray<JavaStruct> structArrayToCopySource = new StructArray<>(null, 20000, it -> new JavaStruct(it));
-    static StructArray<JavaStruct> structArrayToCopyTarget = new StructArray<>(null, 20000, it -> new JavaStruct(it));
+    static StaticStructArray<JavaStruct> structArrayToCopySource = new StaticStructArray<>(null, 20000, it -> new JavaStruct(it));
+    static StaticStructArray<JavaStruct> structArrayToCopyTarget = new StaticStructArray<>(null, 20000, it -> new JavaStruct(it));
 
     @Benchmark
     @Measurement(iterations = 2)
     @Warmup(iterations = 1)
     public void iterateStruct(Blackhole hole) {
-        structArray.forEach((JavaStruct struct) -> {
+        forEach(structArray, (JavaStruct struct) -> {
             hole.consume(struct);
             return Unit.INSTANCE;
         });
@@ -53,7 +56,20 @@ public class StructBenchmark {
     @Measurement(iterations = 2)
     @Warmup(iterations = 1)
     public void iterateAndMutateStruct(Blackhole hole) {
-        mutableStructArray.forEach((JavaMutableStruct struct) -> {
+        forEach(mutableStructArray, (JavaMutableStruct struct) -> {
+            struct.setA(struct.getA() + 1);
+            struct.setB(struct.getB() + 2);
+            struct.setC(struct.getC() + 3);
+            hole.consume(struct);
+            return Unit.INSTANCE;
+        });
+    }
+
+    @Benchmark
+    @Measurement(iterations = 2)
+    @Warmup(iterations = 1)
+    public void iterateAndMutateResizableStruct(Blackhole hole) {
+        forEach(resizableMutableStructArray, (JavaMutableStruct struct) -> {
             struct.setA(struct.getA() + 1);
             struct.setB(struct.getB() + 2);
             struct.setC(struct.getC() + 3);
