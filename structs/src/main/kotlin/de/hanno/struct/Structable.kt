@@ -84,23 +84,20 @@ fun <T: Bufferable> T.copyFrom(target: T) {
     target.copyTo(this)
 }
 
-abstract class Struct(open val parent: Structable? = null): Structable {
+abstract class Struct(val parent: Structable? = null): Structable {
     override val memberStructs = mutableListOf<StructProperty>()
     override val sizeInBytes by lazy {
         memberStructs.sumBy { it.sizeInBytes }
     }
+    private val cachedParentBaseByteOffset = parent?.baseByteOffset ?: 0
     override val baseByteOffset: Int = parent?.getCurrentLocalByteOffset() ?: 0
         get() {
-            val tmpParent = parent
-            return if(tmpParent != null) {
-                tmpParent.baseByteOffset + slidingWindowOffset + field
-            } else field
+            return field + cachedParentBaseByteOffset + slidingWindowOffset
         }
 
     internal var slidingWindowOffset = 0
-    protected open val ownBuffer by lazy { BufferUtils.createByteBuffer(sizeInBytes) }
-    override val buffer
-        get() = parent?.buffer ?: ownBuffer
+    protected val ownBuffer by lazy { BufferUtils.createByteBuffer(sizeInBytes) }
+    override val buffer by lazy { parent?.buffer ?: ownBuffer }
     fun usesOwnBuffer(): Boolean = ownBuffer === buffer
 }
 

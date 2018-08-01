@@ -2,6 +2,7 @@ package de.hanno.struct
 
 import org.lwjgl.BufferUtils
 import java.nio.ByteBuffer
+import java.util.concurrent.CompletableFuture
 
 class StructArray<T: Struct>(parent: Struct? = null, val size: Int, val factory: (Struct) -> T): Struct(parent) {
     private var tempBuffer: ByteBuffer? = null
@@ -11,8 +12,9 @@ class StructArray<T: Struct>(parent: Struct? = null, val size: Int, val factory:
     override val baseByteOffset = parent?.getCurrentLocalByteOffset() ?: 0
 
     val slidingWindow = factory(this)
-    override val sizeInBytes: Int
-        get() = size * slidingWindow.sizeInBytes
+    override val sizeInBytes by lazy {
+        size * slidingWindow.sizeInBytes
+    }
 
     fun shrink(sizeInBytes: Int, copyContent: Boolean = true) = if(buffer.capacity() > sizeInBytes) {
         resize(sizeInBytes, copyContent)

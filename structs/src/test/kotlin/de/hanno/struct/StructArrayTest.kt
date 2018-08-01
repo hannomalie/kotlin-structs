@@ -122,4 +122,29 @@ class StructArrayTest {
         }
     }
 
+
+    companion object {
+
+        class Vector3f(parent: Struct? = null) : Struct(parent) {
+            var x by 0.0f
+            var y by 0.0f
+            var z by 0.0f
+        }
+        class MyStruct(parent: Struct? = null) : Struct(parent) {
+            var myInt by 0
+            val position by Vector3f(this)
+        }
+
+        @JvmStatic fun main(args: Array<String>) {
+            val array = StructArray(null, 20000) { MyStruct(it) }
+            while (true) {
+                array.forEach {
+                    it.myInt++
+                    it.position.x++
+                    it.position.y++
+                    it.position.z++
+                }
+            }
+        }
+    }
 }
