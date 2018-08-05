@@ -39,6 +39,11 @@ interface Structable: Bufferable {
                 .apply { thisRef.register(this@apply) }
                 .apply { if(this@provideDelegate != 0L) this.setValue(thisRef, prop, this@provideDelegate) }
     }
+    operator fun Boolean.provideDelegate(thisRef: Structable, prop: KProperty<*>): BooleanProperty {
+        return BooleanProperty(getCurrentLocalByteOffset())
+                .apply { thisRef.register(this@apply) }
+                .apply { if(this@provideDelegate) this.setValue(thisRef, prop, this@provideDelegate) }
+    }
 
     operator fun <FIELD: Structable> FIELD.provideDelegate(thisRef: Structable, prop: KProperty<*>): GenericStructProperty<Structable, FIELD> {
         return object : GenericStructProperty<Structable, FIELD> {
@@ -57,6 +62,8 @@ interface Structable: Bufferable {
 
         }.apply { thisRef.register(this) }
     }
+
+//    TODO: Make more specific extension method for resizablestructarray and freeze struct afterwards -> struct members not supported dynamic
 
     fun register(structProperty: StructProperty) {
         memberStructs.add(structProperty)
@@ -139,4 +146,12 @@ class LongProperty(override var localByteOffset: Int):StructProperty {
         thisRef.buffer.putLong(thisRef.baseByteOffset + localByteOffset, value)
     }
     operator fun getValue(thisRef: Structable, property: KProperty<*>) = thisRef.buffer.getLong(thisRef.baseByteOffset + localByteOffset)
+}
+class BooleanProperty(override var localByteOffset: Int):StructProperty {
+    override val sizeInBytes = 8
+
+    operator fun setValue(thisRef: Structable, property: KProperty<*>, value: Boolean) {
+        thisRef.buffer.putInt(thisRef.baseByteOffset + localByteOffset, if(value) 1 else 0)
+    }
+    operator fun getValue(thisRef: Structable, property: KProperty<*>) = thisRef.buffer.getInt(thisRef.baseByteOffset + localByteOffset) == 1
 }

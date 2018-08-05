@@ -11,10 +11,12 @@ class StructTest {
         class MyStruct: Struct() {
             val myInt by 0
             var myMutableFloat by 0.0f
+            var myMutableBoolean by false
         }
         val myStruct = MyStruct()
         Assert.assertEquals(0, myStruct.myInt)
         Assert.assertEquals(.0f, myStruct.myMutableFloat)
+        Assert.assertEquals(false, myStruct.myMutableBoolean)
     }
 
     @Test

@@ -8,9 +8,13 @@ interface StructArray<T>: Structable {
     val size: Int
     val factory: (Struct) -> T
     fun getAtIndex(index: Int) : T
+    val indices: IntRange
+    operator fun get(index: Int): T
 }
 
 class StaticStructArray<T: Struct>(parent: Struct? = null, override val size: Int, override val factory: (Struct) -> T): StructArray<T>, Struct(parent) {
+    override val indices: IntRange
+        get() = IntRange(0, size)
     override val baseByteOffset = parent?.getCurrentLocalByteOffset() ?: 0
     override val slidingWindow = factory(this)
     override val sizeInBytes = size * slidingWindow.sizeInBytes
@@ -19,9 +23,12 @@ class StaticStructArray<T: Struct>(parent: Struct? = null, override val size: In
         slidingWindow.slidingWindowOffset = index * slidingWindow.sizeInBytes
         return slidingWindow
     }
+    override operator fun get(index: Int) = getAtIndex(index)
 }
 
 class ResizableStructArray<T:Struct>(parent: Struct? = null, override var size: Int, override val factory: (Struct) -> T): StructArray<T>, Struct(parent) {
+    override val indices: IntRange
+        get() = IntRange(0, size)
     override val baseByteOffset = parent?.getCurrentLocalByteOffset() ?: 0
     override var slidingWindow = factory(this)
     override val sizeInBytes = size * slidingWindow.sizeInBytes
@@ -37,6 +44,7 @@ class ResizableStructArray<T:Struct>(parent: Struct? = null, override var size: 
         slidingWindow.slidingWindowOffset = index * slidingWindow.sizeInBytes
         return slidingWindow
     }
+    override operator fun get(index: Int) = getAtIndex(index)
 
     fun shrinkToBytes(sizeInBytes: Int, copyContent: Boolean = true) = shrink(sizeInBytes/slidingWindow.sizeInBytes, copyContent)
 
