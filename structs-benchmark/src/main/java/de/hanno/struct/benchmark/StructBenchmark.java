@@ -9,20 +9,19 @@ import org.openjdk.jmh.infra.Blackhole;
 
 import java.util.ArrayList;
 
-import static de.hanno.struct.StructArrayKt.copyTo;
 import static de.hanno.struct.StructArrayKt.forEach;
 
 public class StructBenchmark {
 
-    static final int size = 5000;
+    private static final int size = 5000;
 
-    static StaticStructArray<JavaStruct> structArray = new StaticStructArray<>(null, size, it -> new JavaStruct(it));
-    static ArrayList<JavaVanilla> vanillaArrayList = new ArrayList<>(size);
+    private static StaticStructArray<JavaStruct> structArray = new StaticStructArray<>(null, size, JavaStruct::new);
+    private static ArrayList<JavaVanilla> vanillaArrayList = new ArrayList<>(size);
 
-    static StaticStructArray<JavaMutableStruct> mutableStructArray = new StaticStructArray<>(null, size, it -> new JavaMutableStruct(it));
-    static ArrayList<JavaMutableVanilla> mutableVanillaArrayList = new ArrayList<>(size);
+    private static StaticStructArray<JavaMutableStruct> mutableStructArray = new StaticStructArray<>(null, size, JavaMutableStruct::new);
+    private static ArrayList<JavaMutableVanilla> mutableVanillaArrayList = new ArrayList<>(size);
 
-    static StaticStructArray<JavaMutableStruct> resizableMutableStructArray = new StaticStructArray<>(null, size, it -> new JavaMutableStruct(it));
+    private static StaticStructArray<JavaMutableStruct> resizableMutableStructArray = new StaticStructArray<>(null, size, JavaMutableStruct::new);
 
     static {
         for (int i = 0; i < size; i++) {
@@ -31,9 +30,6 @@ public class StructBenchmark {
         }
 
     }
-
-    static StaticStructArray<JavaStruct> structArrayToCopySource = new StaticStructArray<>(null, 20000, it -> new JavaStruct(it));
-    static StaticStructArray<JavaStruct> structArrayToCopyTarget = new StaticStructArray<>(null, 20000, it -> new JavaStruct(it));
 
     @Benchmark
     @Measurement(iterations = 2)
@@ -90,10 +86,4 @@ public class StructBenchmark {
         });
     }
 
-    @Benchmark
-    @Measurement(iterations = 2)
-    @Warmup(iterations = 1)
-    public void copyStructArray(Blackhole hole) {
-        copyTo(structArrayToCopySource, structArrayToCopyTarget, true);
-    }
 }
