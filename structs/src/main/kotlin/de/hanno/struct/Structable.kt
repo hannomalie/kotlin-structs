@@ -46,19 +46,10 @@ interface Structable: Bufferable {
     }
 
     operator fun <FIELD: Structable> FIELD.provideDelegate(thisRef: Structable, prop: KProperty<*>): GenericStructProperty<Structable, FIELD> {
-        return object : GenericStructProperty<Structable, FIELD> {
+        return object : GenericStructProperty<Structable, FIELD>() {
             override val sizeInBytes = this@provideDelegate.sizeInBytes
             override val localByteOffset = thisRef.getCurrentLocalByteOffset()
-
-            var currentRef = this@provideDelegate
-
-            override fun getValue(thisRef: Structable, property: KProperty<*>): FIELD {
-                return currentRef
-            }
-
-            override fun setValue(thisRef: Structable, property: KProperty<*>, value: FIELD) {
-                currentRef = value
-            }
+            override var currentRef = this@provideDelegate
 
         }.apply { thisRef.register(this) }
     }
@@ -111,47 +102,57 @@ interface StructProperty {
     val localByteOffset: Int
     val sizeInBytes: Int
 }
-interface GenericStructProperty<OWNER_TYPE: Structable, FIELD_TYPE> : ReadWriteProperty<OWNER_TYPE, FIELD_TYPE>, StructProperty
+abstract class GenericStructProperty<OWNER_TYPE: Structable, FIELD_TYPE> : StructProperty{
+    abstract var currentRef: FIELD_TYPE
+
+    inline operator fun getValue(thisRef: OWNER_TYPE, property: KProperty<*>): FIELD_TYPE {
+        return currentRef
+    }
+
+    inline operator fun setValue(thisRef: OWNER_TYPE, property: KProperty<*>, value: FIELD_TYPE) {
+        currentRef = value
+    }
+}
 
 class IntProperty(override var localByteOffset: Int):StructProperty {
     override val sizeInBytes = 4
 
-    operator fun setValue(thisRef: Structable, property: KProperty<*>, value: Int) {
+    inline operator fun setValue(thisRef: Structable, property: KProperty<*>, value: Int) {
         thisRef.buffer.putInt(thisRef.baseByteOffset + localByteOffset, value)
     }
-    operator fun getValue(thisRef: Structable, property: KProperty<*>) = thisRef.buffer.getInt(thisRef.baseByteOffset + localByteOffset)
+    inline operator fun getValue(thisRef: Structable, property: KProperty<*>) = thisRef.buffer.getInt(thisRef.baseByteOffset + localByteOffset)
 }
 
 class FloatProperty(override var localByteOffset: Int):StructProperty {
     override val sizeInBytes = 4
 
-    operator fun setValue(thisRef: Structable, property: KProperty<*>, value: Float) {
+    inline operator fun setValue(thisRef: Structable, property: KProperty<*>, value: Float) {
         thisRef.buffer.putFloat(thisRef.baseByteOffset + localByteOffset, value)
     }
-    operator fun getValue(thisRef: Structable, property: KProperty<*>) = thisRef.buffer.getFloat(thisRef.baseByteOffset + localByteOffset)
+    inline operator fun getValue(thisRef: Structable, property: KProperty<*>) = thisRef.buffer.getFloat(thisRef.baseByteOffset + localByteOffset)
 }
 
 class DoubleProperty(override var localByteOffset: Int):StructProperty {
     override val sizeInBytes = 8
 
-    operator fun setValue(thisRef: Structable, property: KProperty<*>, value: Double) {
+    inline operator fun setValue(thisRef: Structable, property: KProperty<*>, value: Double) {
         thisRef.buffer.putDouble(thisRef.baseByteOffset + localByteOffset, value)
     }
-    operator fun getValue(thisRef: Structable, property: KProperty<*>) = thisRef.buffer.getDouble(thisRef.baseByteOffset + localByteOffset)
+    inline operator fun getValue(thisRef: Structable, property: KProperty<*>) = thisRef.buffer.getDouble(thisRef.baseByteOffset + localByteOffset)
 }
 class LongProperty(override var localByteOffset: Int):StructProperty {
     override val sizeInBytes = 8
 
-    operator fun setValue(thisRef: Structable, property: KProperty<*>, value: Long) {
+    inline operator fun setValue(thisRef: Structable, property: KProperty<*>, value: Long) {
         thisRef.buffer.putLong(thisRef.baseByteOffset + localByteOffset, value)
     }
-    operator fun getValue(thisRef: Structable, property: KProperty<*>) = thisRef.buffer.getLong(thisRef.baseByteOffset + localByteOffset)
+    inline operator fun getValue(thisRef: Structable, property: KProperty<*>) = thisRef.buffer.getLong(thisRef.baseByteOffset + localByteOffset)
 }
 class BooleanProperty(override var localByteOffset: Int):StructProperty {
     override val sizeInBytes = 8
 
-    operator fun setValue(thisRef: Structable, property: KProperty<*>, value: Boolean) {
+    inline operator fun setValue(thisRef: Structable, property: KProperty<*>, value: Boolean) {
         thisRef.buffer.putInt(thisRef.baseByteOffset + localByteOffset, if(value) 1 else 0)
     }
-    operator fun getValue(thisRef: Structable, property: KProperty<*>) = thisRef.buffer.getInt(thisRef.baseByteOffset + localByteOffset) == 1
+    inline operator fun getValue(thisRef: Structable, property: KProperty<*>) = thisRef.buffer.getInt(thisRef.baseByteOffset + localByteOffset) == 1
 }

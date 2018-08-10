@@ -43,13 +43,13 @@ public class StructBenchmark {
     private static ByteBuffer kotlinDelegatedPropertySlidingWindowBuffer = BufferUtils.createByteBuffer(12*size);
     private static KotlinDelegatedPropertySlidingWindow kotlinDelegatedPropertySlidingWindow = new KotlinDelegatedPropertySlidingWindow(kotlinDelegatedPropertySlidingWindowBuffer);
 
-    private static ByteBuffer kotlinDelegatedInlinedPropertySlidingWindowBuffer = BufferUtils.createByteBuffer(12*size);
-    private static KotlinDelegatedPropertySlidingWindow kotlinDelegatedInlinedPropertySlidingWindow = new KotlinDelegatedPropertySlidingWindow(kotlinDelegatedInlinedPropertySlidingWindowBuffer);
+    private static ByteBuffer kotlinDelegatedPropertyUnsafeSlidingWindowBuffer = BufferUtils.createByteBuffer(12*size);
+    private static KotlinDelegatedPropertyUnsafeSlidingWindow kotlinDelegatedPropertyUnsafeSlidingWindow = new KotlinDelegatedPropertyUnsafeSlidingWindow(kotlinDelegatedPropertyUnsafeSlidingWindowBuffer);
     static {
         simpleSlidingWindowBuffer.rewind();
         kotlinSimpleSlidingWindowBuffer.rewind();
         kotlinDelegatedPropertySlidingWindowBuffer.rewind();
-        kotlinDelegatedInlinedPropertySlidingWindowBuffer.rewind();
+        kotlinDelegatedPropertyUnsafeSlidingWindowBuffer.rewind();
     }
 
     @Benchmark
@@ -134,13 +134,13 @@ public class StructBenchmark {
     @Benchmark
     @Measurement(iterations = 2)
     @Warmup(iterations = 1)
-    public void iterateAndMutateKotlinDelegatedInlinedPropertySlidingWindowBuffer(Blackhole hole) {
-        for(int i = 0; i < kotlinDelegatedInlinedPropertySlidingWindowBuffer.capacity() - 12; i+=12) {
-            kotlinDelegatedInlinedPropertySlidingWindow.setBaseByteOffset(i);
-            kotlinDelegatedInlinedPropertySlidingWindow.setX(kotlinDelegatedInlinedPropertySlidingWindow.getX() + 1);
-            kotlinDelegatedInlinedPropertySlidingWindow.setY(kotlinDelegatedInlinedPropertySlidingWindow.getY() + 2);
-            kotlinDelegatedInlinedPropertySlidingWindow.setZ(kotlinDelegatedInlinedPropertySlidingWindow.getZ() + 3);
-            hole.consume(kotlinDelegatedInlinedPropertySlidingWindow);
+    public void iterateAndMutateKotlinDelegatedPropertyUnsafeSlidingWindowBuffer(Blackhole hole) {
+        for(int i = 0; i < kotlinDelegatedPropertyUnsafeSlidingWindowBuffer.capacity() - 12; i+=12) {
+            kotlinDelegatedPropertyUnsafeSlidingWindow.setBaseByteOffset(i);
+            kotlinDelegatedPropertyUnsafeSlidingWindow.setX(kotlinDelegatedPropertyUnsafeSlidingWindow.getX() + 1);
+            kotlinDelegatedPropertyUnsafeSlidingWindow.setY(kotlinDelegatedPropertyUnsafeSlidingWindow.getY() + 2);
+            kotlinDelegatedPropertyUnsafeSlidingWindow.setZ(kotlinDelegatedPropertyUnsafeSlidingWindow.getZ() + 3);
+            hole.consume(kotlinDelegatedPropertyUnsafeSlidingWindow);
         }
     }
 
