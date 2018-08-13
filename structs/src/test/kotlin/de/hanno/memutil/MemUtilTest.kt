@@ -1,4 +1,4 @@
-package de.hanno.struct
+package de.hanno.memutil
 
 import org.junit.Assert
 import org.junit.Test

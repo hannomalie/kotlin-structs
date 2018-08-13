@@ -74,19 +74,19 @@ class ResizableStructArray<T:Struct>(parent: Struct? = null, override var size: 
     }
 }
 
-@JvmOverloads fun <T:Struct> StructArray<T>.forEach(rewindBuffer: Boolean = true, function: (T) -> Unit) {
+@JvmOverloads inline fun <T:Struct> StructArray<T>.forEach(rewindBuffer: Boolean = true, noinline function: (T) -> Unit) {
     buffer.forEach(rewindBuffer, slidingWindow, function)
 }
 
-@JvmOverloads fun <T:Struct> StructArray<T>.forEachIndexed(rewindBuffer: Boolean = true, function: (Int, T) -> Unit) {
+@JvmOverloads inline fun <T:Struct> StructArray<T>.forEachIndexed(rewindBuffer: Boolean = true, noinline function: (Int, T) -> Unit) {
     this.buffer.forEachIndexed(rewindBuffer, slidingWindow, function)
 }
 
-@JvmOverloads fun <T: Struct> StructArray<T>.copyTo(target: StructArray<T>, rewindBuffers: Boolean = true) {
+@JvmOverloads inline fun <T: Struct> StructArray<T>.copyTo(target: StructArray<T>, rewindBuffers: Boolean = true) {
     copyTo(target.buffer, rewindBuffers)
 }
 
-@JvmOverloads fun <T: Struct> StructArray<T>.copyTo(target: ByteBuffer, rewindBuffers: Boolean = true) {
+@JvmOverloads inline fun <T: Struct> StructArray<T>.copyTo(target: ByteBuffer, rewindBuffers: Boolean = true) {
     buffer.copyTo(target, rewindBuffers, 0)
 }
 

@@ -125,3 +125,5 @@ atlassian-ide-plugin.xml
 *.log
 
 .gradle/
+
+*.kotlin_module
