@@ -22,11 +22,12 @@
  */
 package de.hanno.memutil
 
+import de.hanno.memutil.Config.Companion.useUnsafe
 import java.nio.ByteBuffer
 
 /**
  * Helper class to do efficient memory operations.
- * Heavy stuff, sse with extreme caution!
+ * Heavy stuff, use with extreme caution!
  *
  * @author The LWJGL authors
  * @author Kai Burjack
@@ -43,29 +44,17 @@ interface MemUtil {
     fun putFloat(dst: ByteBuffer, offset: Long, value: Float)
     fun getFloat(dst: ByteBuffer, offset: Long): Float
 
+    fun putDouble(dst: ByteBuffer, offset: Long, value: Double)
+    fun getDouble(dst: ByteBuffer, offset: Long): Double
+
     fun putBoolean(dst: ByteBuffer, offset: Long, value: Boolean)
     fun getBoolean(dst: ByteBuffer, offset: Long): Boolean
 
-    companion object {
-//        val INSTANCE = createInstance()
-        private fun createInstance(): MemUtil {
-            var accessor = try {
-                if (Options.NO_UNSAFE)
-                    MemUtilNIO()
-                else
-                    MemUtilUnsafe()
-            } catch (e: Throwable) {
-                MemUtilNIO()
-            }
-
-            return accessor
-        }
-    }
+    companion object: MemUtil by (if(useUnsafe) MemUtilUnsafe() else MemUtilNIO())
 }
 
-class Options {
+class Config {
     companion object {
-        val NO_UNSAFE = false
-        val DEBUG = false
+        var useUnsafe: Boolean = true
     }
 }

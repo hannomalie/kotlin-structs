@@ -1,8 +1,12 @@
 package de.hanno.struct
 
+import de.hanno.memutil.MemUtil
+import de.hanno.struct.StructProperty.Companion.putDouble
+import de.hanno.struct.StructProperty.Companion.putFloat
+import de.hanno.struct.StructProperty.Companion.putInt
+import de.hanno.struct.StructProperty.Companion.putLong
 import org.lwjgl.BufferUtils
 import java.nio.ByteBuffer
-import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KProperty
 
 interface Sized {
@@ -14,9 +18,9 @@ interface Bufferable: Sized {
 }
 
 interface Structable: Bufferable {
-    val baseByteOffset: Int
+    val baseByteOffset: Long
     val memberStructs: MutableList<StructProperty>
-    fun getCurrentLocalByteOffset() = memberStructs.sumBy { it.sizeInBytes }
+    fun getCurrentLocalByteOffset() = memberStructs.sumBy { it.sizeInBytes }.toLong()
 
     operator fun Int.provideDelegate(thisRef: Structable, prop: KProperty<*>): IntProperty {
         return IntProperty(getCurrentLocalByteOffset())
@@ -87,20 +91,22 @@ abstract class Struct(val parent: Structable? = null): Structable {
     override val sizeInBytes by lazy {
         memberStructs.sumBy { it.sizeInBytes }
     }
-    override val baseByteOffset: Int = parent?.getCurrentLocalByteOffset() ?: 0
+    override val baseByteOffset: Long = parent?.getCurrentLocalByteOffset() ?: 0
         get() {
             return field + (parent?.baseByteOffset ?: 0) + slidingWindowOffset
         }
 
-    internal var slidingWindowOffset = 0
+    var slidingWindowOffset = 0
     protected val ownBuffer by lazy { BufferUtils.createByteBuffer(sizeInBytes) }
     override val buffer by lazy { parent?.buffer ?: ownBuffer }
     fun usesOwnBuffer(): Boolean = ownBuffer === buffer
 }
 
 interface StructProperty {
-    val localByteOffset: Int
+    val localByteOffset: Long
     val sizeInBytes: Int
+
+    companion object: MemUtil by MemUtil.Companion
 }
 abstract class GenericStructProperty<OWNER_TYPE: Structable, FIELD_TYPE> : StructProperty{
     abstract var currentRef: FIELD_TYPE
@@ -114,45 +120,45 @@ abstract class GenericStructProperty<OWNER_TYPE: Structable, FIELD_TYPE> : Struc
     }
 }
 
-class IntProperty(override var localByteOffset: Int):StructProperty {
+class IntProperty(override var localByteOffset: Long):StructProperty {
     override val sizeInBytes = 4
 
     inline operator fun setValue(thisRef: Structable, property: KProperty<*>, value: Int) {
-        thisRef.buffer.putInt(thisRef.baseByteOffset + localByteOffset, value)
+        putInt(thisRef.buffer, thisRef.baseByteOffset + localByteOffset, value)
     }
-    inline operator fun getValue(thisRef: Structable, property: KProperty<*>) = thisRef.buffer.getInt(thisRef.baseByteOffset + localByteOffset)
+    inline operator fun getValue(thisRef: Structable, property: KProperty<*>) = StructProperty.Companion.getInt(thisRef.buffer, thisRef.baseByteOffset + localByteOffset)
 }
 
-class FloatProperty(override var localByteOffset: Int):StructProperty {
+class FloatProperty(override var localByteOffset: Long):StructProperty {
     override val sizeInBytes = 4
 
     inline operator fun setValue(thisRef: Structable, property: KProperty<*>, value: Float) {
-        thisRef.buffer.putFloat(thisRef.baseByteOffset + localByteOffset, value)
+        putFloat(thisRef.buffer, thisRef.baseByteOffset + localByteOffset, value)
     }
-    inline operator fun getValue(thisRef: Structable, property: KProperty<*>) = thisRef.buffer.getFloat(thisRef.baseByteOffset + localByteOffset)
+    inline operator fun getValue(thisRef: Structable, property: KProperty<*>) = StructProperty.Companion.getFloat(thisRef.buffer, thisRef.baseByteOffset + localByteOffset)
 }
 
-class DoubleProperty(override var localByteOffset: Int):StructProperty {
+class DoubleProperty(override var localByteOffset: Long):StructProperty {
     override val sizeInBytes = 8
 
     inline operator fun setValue(thisRef: Structable, property: KProperty<*>, value: Double) {
-        thisRef.buffer.putDouble(thisRef.baseByteOffset + localByteOffset, value)
+        putDouble(thisRef.buffer, thisRef.baseByteOffset + localByteOffset, value)
     }
-    inline operator fun getValue(thisRef: Structable, property: KProperty<*>) = thisRef.buffer.getDouble(thisRef.baseByteOffset + localByteOffset)
+    inline operator fun getValue(thisRef: Structable, property: KProperty<*>) = StructProperty.Companion.getDouble(thisRef.buffer, thisRef.baseByteOffset + localByteOffset)
 }
-class LongProperty(override var localByteOffset: Int):StructProperty {
+class LongProperty(override var localByteOffset: Long):StructProperty {
     override val sizeInBytes = 8
 
     inline operator fun setValue(thisRef: Structable, property: KProperty<*>, value: Long) {
-        thisRef.buffer.putLong(thisRef.baseByteOffset + localByteOffset, value)
+        putLong(thisRef.buffer, thisRef.baseByteOffset + localByteOffset, value)
     }
-    inline operator fun getValue(thisRef: Structable, property: KProperty<*>) = thisRef.buffer.getLong(thisRef.baseByteOffset + localByteOffset)
+    inline operator fun getValue(thisRef: Structable, property: KProperty<*>) = StructProperty.Companion.getLong(thisRef.buffer, thisRef.baseByteOffset + localByteOffset)
 }
-class BooleanProperty(override var localByteOffset: Int):StructProperty {
+class BooleanProperty(override var localByteOffset: Long):StructProperty {
     override val sizeInBytes = 8
 
     inline operator fun setValue(thisRef: Structable, property: KProperty<*>, value: Boolean) {
-        thisRef.buffer.putInt(thisRef.baseByteOffset + localByteOffset, if(value) 1 else 0)
+        putInt(thisRef.buffer, thisRef.baseByteOffset + localByteOffset, if(value) 1 else 0)
     }
-    inline operator fun getValue(thisRef: Structable, property: KProperty<*>) = thisRef.buffer.getInt(thisRef.baseByteOffset + localByteOffset) == 1
+    inline operator fun getValue(thisRef: Structable, property: KProperty<*>) = StructProperty.Companion.getInt(thisRef.buffer, thisRef.baseByteOffset + localByteOffset) == 1
 }

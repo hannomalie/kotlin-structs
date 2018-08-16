@@ -127,3 +127,4 @@ atlassian-ide-plugin.xml
 .gradle/
 
 *.kotlin_module
+*/out/

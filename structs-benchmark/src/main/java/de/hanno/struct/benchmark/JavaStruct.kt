@@ -1,6 +1,6 @@
 package de.hanno.struct.benchmark
 
-import de.hanno.struct.MemUtilUnsafe
+import de.hanno.memutil.MemUtilUnsafe
 import de.hanno.struct.Struct
 import de.hanno.struct.StructProperty
 import java.nio.ByteBuffer
@@ -37,36 +37,41 @@ class KotlinSimpleSlidingWindow(private val buffer: ByteBuffer) {
         }
 }
 
-class KotlinDelegatedPropertySlidingWindow(val buffer: ByteBuffer) {
+class KotlinDelegatedPropertySimpleSlidingWindow(val buffer: ByteBuffer) {
     var baseByteOffset = 0
 
     var x by FloatProperty(0)
     var y by FloatProperty(4)
     var z by FloatProperty(8)
 }
-class KotlinDelegatedPropertyUnsafeSlidingWindow(val buffer: ByteBuffer) {
+class KotlinDelegatedPropertyUnsafeSimpleSlidingWindow(val buffer: ByteBuffer) {
     var baseByteOffset = 0
 
     var x by UnsafeFloatProperty(0)
     var y by UnsafeFloatProperty(4)
     var z by UnsafeFloatProperty(8)
 }
-
-class FloatProperty(override var localByteOffset: Int): StructProperty {
-    override val sizeInBytes = 4
-
-    inline operator fun setValue(thisRef: KotlinDelegatedPropertySlidingWindow, property: KProperty<*>, value: Float) {
-        thisRef.buffer.putFloat(thisRef.baseByteOffset + localByteOffset, value)
-    }
-    inline operator fun getValue(thisRef: KotlinDelegatedPropertySlidingWindow, property: KProperty<*>) = thisRef.buffer.getFloat(thisRef.baseByteOffset + localByteOffset)
+class KotlinDelegatedPropertyUnsafeSlidingWindow(override val buffer: ByteBuffer): Struct(null) {
+    var x by 0f
+    var y by 0f
+    var z by 0f
 }
-class UnsafeFloatProperty(override var localByteOffset: Int): StructProperty {
+
+class FloatProperty(override var localByteOffset: Long): StructProperty {
     override val sizeInBytes = 4
 
-    inline operator fun setValue(thisRef: KotlinDelegatedPropertyUnsafeSlidingWindow, property: KProperty<*>, value: Float) {
-        unsafeMemUtil.putFloat(thisRef.buffer, (thisRef.baseByteOffset + localByteOffset).toLong(), value)
+    inline operator fun setValue(thisRef: KotlinDelegatedPropertySimpleSlidingWindow, property: KProperty<*>, value: Float) {
+        thisRef.buffer.putFloat((thisRef.baseByteOffset + localByteOffset).toInt(), value)
     }
-    inline operator fun getValue(thisRef: KotlinDelegatedPropertyUnsafeSlidingWindow, property: KProperty<*>) = unsafeMemUtil.getFloat(thisRef.buffer, (thisRef.baseByteOffset + localByteOffset).toLong())
+    inline operator fun getValue(thisRef: KotlinDelegatedPropertySimpleSlidingWindow, property: KProperty<*>) = thisRef.buffer.getFloat((thisRef.baseByteOffset + localByteOffset).toInt())
+}
+class UnsafeFloatProperty(override var localByteOffset: Long): StructProperty {
+    override val sizeInBytes = 4
+
+    inline operator fun setValue(thisRef: KotlinDelegatedPropertyUnsafeSimpleSlidingWindow, property: KProperty<*>, value: Float) {
+        unsafeMemUtil.putFloat(thisRef.buffer, thisRef.baseByteOffset + localByteOffset, value)
+    }
+    inline operator fun getValue(thisRef: KotlinDelegatedPropertyUnsafeSimpleSlidingWindow, property: KProperty<*>) = unsafeMemUtil.getFloat(thisRef.buffer, (thisRef.baseByteOffset + localByteOffset).toLong())
 
     companion object {
         val unsafeMemUtil = MemUtilUnsafe()

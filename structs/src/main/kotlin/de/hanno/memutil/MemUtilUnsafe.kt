@@ -3,6 +3,12 @@ package de.hanno.memutil
 import java.nio.ByteBuffer
 
 class MemUtilUnsafe : MemUtil {
+    override fun putDouble(dst: ByteBuffer, offset: Long, value: Double) {
+        UNSAFE.putDouble(dst.address + offset, value)
+    }
+
+    override fun getDouble(dst: ByteBuffer, offset: Long): Double = UNSAFE.getDouble(dst.address + offset)
+
     override fun putBoolean(dst: ByteBuffer, offset: Long, value: Boolean) {
         UNSAFE.putInt(dst.address + offset, if(value) 1 else 0)
     }

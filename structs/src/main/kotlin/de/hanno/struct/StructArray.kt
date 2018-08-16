@@ -140,15 +140,14 @@ class ResizableStructArray<T:Struct>(parent: Struct? = null, override var size: 
     }
 }
 
-@JvmOverloads fun <T:Struct> ByteBuffer.forEach(rewindBuffer: Boolean = true, slidingWindow: T, function: (T) -> Unit) {
+@JvmOverloads inline fun <T:Struct> ByteBuffer.forEach(rewindBuffer: Boolean = true, slidingWindow: T, crossinline function: (T) -> Unit) {
     if (rewindBuffer) {
         rewind()
     }
-    var counter = 0
-    while(counter*slidingWindow.sizeInBytes <= capacity() - slidingWindow.sizeInBytes) {
-        slidingWindow.slidingWindowOffset = counter * slidingWindow.sizeInBytes
+    val slidingWindowSizeInBytes = slidingWindow.sizeInBytes
+    while(slidingWindow.slidingWindowOffset <= capacity() - slidingWindowSizeInBytes) {
         function(slidingWindow)
-        counter++
+        slidingWindow.slidingWindowOffset += slidingWindowSizeInBytes
     }
 }
 @JvmOverloads fun <T:Struct> ByteBuffer.forEachIndexed(rewindBuffer: Boolean = true, slidingWindow: T, function: (Int, T) -> Unit) {
