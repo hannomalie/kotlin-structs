@@ -26,6 +26,17 @@ class StructArrayTest {
         }
     }
     @Test
+    fun testForEach() {
+        val array = prepareAnArray()
+
+        var counter = 0
+        array.forEach {
+            Assert.assertEquals(counter, it.myInt)
+            counter++
+        }
+    }
+
+    @Test
     fun testGetAtIndexResizable() {
         val array = prepareAResizableArray()
         array.resize(11)
@@ -163,6 +174,20 @@ class StructArrayTest {
         structArray.forEachIndexed { index, current ->
             assertEquals((index) * current.sizeInBytes, current.slidingWindowOffset)
             assertEquals(index, current.myInt)
+        }
+
+        with(structArray.buffer) {
+            rewind()
+            Assert.assertEquals(0, int)
+            Assert.assertEquals(1, int)
+            Assert.assertEquals(2, int)
+            Assert.assertEquals(3, int)
+            Assert.assertEquals(4, int)
+            Assert.assertEquals(5, int)
+            Assert.assertEquals(6, int)
+            Assert.assertEquals(7, int)
+            Assert.assertEquals(8, int)
+            Assert.assertEquals(9, int)
         }
     }
 

@@ -145,7 +145,9 @@ class ResizableStructArray<T:Struct>(parent: Struct? = null, override var size: 
         rewind()
     }
     val slidingWindowSizeInBytes = slidingWindow.sizeInBytes
-    while(slidingWindow.slidingWindowOffset <= capacity() - slidingWindowSizeInBytes) {
+    val capacity = capacity()
+    slidingWindow.slidingWindowOffset = 0
+    while(slidingWindow.slidingWindowOffset <= capacity - slidingWindowSizeInBytes) {
         function(slidingWindow)
         slidingWindow.slidingWindowOffset += slidingWindowSizeInBytes
     }

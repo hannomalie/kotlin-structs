@@ -59,25 +59,25 @@ public class StructBenchmark {
     }
 
     @Benchmark
-    @Measurement(iterations = 1)
-    @Warmup(iterations = 1)
+    @Measurement(iterations = 2)
+    @Warmup(iterations = 2)
     public void iterateStruct(Blackhole hole) {
-        forEach(structArray, (JavaStruct struct) -> {
+        forEach(structArray, false, (JavaStruct struct) -> {
             hole.consume(struct);
             return Unit.INSTANCE;
         });
     }
 
     @Benchmark
-    @Measurement(iterations = 1)
-    @Warmup(iterations = 1)
+    @Measurement(iterations = 2)
+    @Warmup(iterations = 2)
     public void iterateVanilla(Blackhole hole) {
         vanillaArrayList.forEach(hole::consume);
     }
 
     @Benchmark
-    @Measurement(iterations = 1)
-    @Warmup(iterations = 1)
+    @Measurement(iterations = 2)
+    @Warmup(iterations = 2)
     public void iterateAndMutateStructArray(Blackhole hole) {
         forEach(mutableStructArray, false, (JavaMutableStruct struct) -> {
             struct.setA(struct.getA() + 1);
@@ -87,8 +87,8 @@ public class StructBenchmark {
         });
     }
     @Benchmark
-    @Measurement(iterations = 1)
-    @Warmup(iterations = 1)
+    @Measurement(iterations = 2)
+    @Warmup(iterations = 2)
     public void iterateAndMutateStructArrayIndexed(Blackhole hole) {
         for(int i = 0; i < mutableStructArrayIndexIteration.getSize(); i++) {
             final JavaMutableStruct struct = mutableStructArrayIndexIteration.getAtIndex(i);
@@ -99,20 +99,20 @@ public class StructBenchmark {
     }
 
     @Benchmark
-    @Measurement(iterations = 1)
-    @Warmup(iterations = 1)
+    @Measurement(iterations = 2)
+    @Warmup(iterations = 2)
     public void iterateAndMutateBufferDirect(Blackhole hole) {
-        for(int i = 0; i < directBuffer.capacity() - 12; i+=12) {
+        for(int i = 0; i <= directBuffer.capacity() - 12; i+=12) {
             directBuffer.putFloat(i, directBuffer.getFloat(i));
             directBuffer.putFloat(i +4, directBuffer.getFloat(i +4));
             directBuffer.putFloat(i +8, directBuffer.getFloat(i +8));
         }
     }
     @Benchmark
-    @Measurement(iterations = 1)
-    @Warmup(iterations = 1)
+    @Measurement(iterations = 2)
+    @Warmup(iterations = 2)
     public void iterateAndMutateSimpleSlidingWindowBuffer(Blackhole hole) {
-        for(int i = 0; i < simpleSlidingWindowBuffer.capacity() - 12; i+=12) {
+        for(int i = 0; i <= simpleSlidingWindowBuffer.capacity() - 12; i+=12) {
             simpleSlidingWindow.baseByteOffset = i;
             simpleSlidingWindow.setX(simpleSlidingWindow.getX() + 1);
             simpleSlidingWindow.setY(simpleSlidingWindow.getY() + 2);
@@ -121,10 +121,10 @@ public class StructBenchmark {
     }
 
     @Benchmark
-    @Measurement(iterations = 1)
-    @Warmup(iterations = 1)
+    @Measurement(iterations = 2)
+    @Warmup(iterations = 2)
     public void iterateAndMutateKotlinSimpleSlidingWindowBuffer(Blackhole hole) {
-        for(int i = 0; i < kotlinSimpleSlidingWindowBuffer.capacity() - 12; i+=12) {
+        for(int i = 0; i <= kotlinSimpleSlidingWindowBuffer.capacity() - 12; i+=12) {
             kotlinSimpleSlidingWindow.setBaseByteOffset(i);
             kotlinSimpleSlidingWindow.setX(kotlinSimpleSlidingWindow.getX() + 1);
             kotlinSimpleSlidingWindow.setY(kotlinSimpleSlidingWindow.getY() + 2);
@@ -133,10 +133,10 @@ public class StructBenchmark {
     }
 
     @Benchmark
-    @Measurement(iterations = 1)
-    @Warmup(iterations = 1)
+    @Measurement(iterations = 2)
+    @Warmup(iterations = 2)
     public void iterateAndMutateKotlinDelegatedPropertySlidingWindowBuffer(Blackhole hole) {
-        for(int i = 0; i < kotlinDelegatedPropertySimpleSlidingWindowBuffer.capacity() - 12; i+=12) {
+        for(int i = 0; i <= kotlinDelegatedPropertySimpleSlidingWindowBuffer.capacity() - 12; i+=12) {
             kotlinDelegatedPropertySimpleSlidingWindow.setBaseByteOffset(i);
             kotlinDelegatedPropertySimpleSlidingWindow.setX(kotlinDelegatedPropertySimpleSlidingWindow.getX() + 1);
             kotlinDelegatedPropertySimpleSlidingWindow.setY(kotlinDelegatedPropertySimpleSlidingWindow.getY() + 2);
@@ -144,10 +144,10 @@ public class StructBenchmark {
         }
     }
     @Benchmark
-    @Measurement(iterations = 1)
-    @Warmup(iterations = 1)
+    @Measurement(iterations = 2)
+    @Warmup(iterations = 2)
     public void iterateAndMutateKotlinDelegatedPropertyUnsafeSimpleSlidingWindowBuffer(Blackhole hole) {
-        for(int i = 0; i < kotlinDelegatedPropertyUnsafeSimpleSlidingWindowBuffer.capacity() - 12; i+=12) {
+        for(int i = 0; i <= kotlinDelegatedPropertyUnsafeSimpleSlidingWindowBuffer.capacity() - 12; i+=12) {
             kotlinDelegatedPropertyUnsafeSimpleSlidingWindow.setBaseByteOffset(i);
             kotlinDelegatedPropertyUnsafeSimpleSlidingWindow.setX(kotlinDelegatedPropertyUnsafeSimpleSlidingWindow.getX() + 1);
             kotlinDelegatedPropertyUnsafeSimpleSlidingWindow.setY(kotlinDelegatedPropertyUnsafeSimpleSlidingWindow.getY() + 2);
@@ -156,10 +156,10 @@ public class StructBenchmark {
     }
 
     @Benchmark
-    @Measurement(iterations = 1)
-    @Warmup(iterations = 1)
+    @Measurement(iterations = 2)
+    @Warmup(iterations = 2)
     public void iterateAndMutateKotlinDelegatedPropertyUnsafeSlidingWindowBuffer(Blackhole hole) {
-        for(int i = 0; i < kotlinDelegatedPropertyUnsafeSlidingWindowBuffer.capacity() - 12; i+=12) {
+        for(int i = 0; i <= kotlinDelegatedPropertyUnsafeSlidingWindowBuffer.capacity() - 12; i+=12) {
             kotlinDelegatedPropertyUnsafeSlidingWindow.setSlidingWindowOffset(i);
             kotlinDelegatedPropertyUnsafeSlidingWindow.setX(kotlinDelegatedPropertyUnsafeSlidingWindow.getX() + 1);
             kotlinDelegatedPropertyUnsafeSlidingWindow.setY(kotlinDelegatedPropertyUnsafeSlidingWindow.getY() + 2);
@@ -168,8 +168,8 @@ public class StructBenchmark {
     }
 
     @Benchmark
-    @Measurement(iterations = 1)
-    @Warmup(iterations = 1)
+    @Measurement(iterations = 2)
+    @Warmup(iterations = 2)
     public void iterateAndMutateResizableStruct(Blackhole hole) {
         forEach(resizableMutableStructArray, false, (JavaMutableStruct struct) -> {
             struct.setA(struct.getA() + 1);
@@ -180,8 +180,8 @@ public class StructBenchmark {
     }
 
     @Benchmark
-    @Measurement(iterations = 1)
-    @Warmup(iterations = 1)
+    @Measurement(iterations = 2)
+    @Warmup(iterations = 2)
     public void iterateAndMutateVanilla(Blackhole hole) {
         mutableVanillaArrayList.forEach((JavaMutableVanilla nonStruct) -> {
             nonStruct.setA(nonStruct.getA() + 1);
