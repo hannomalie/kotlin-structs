@@ -1,6 +1,9 @@
 package de.hanno.struct.benchmark;
 
 import de.hanno.struct.StaticStructArray;
+import de.hanno.struct.benchmark.de.hanno.struct.benchmark.kotlin.IterateAndMutateStructArray;
+import de.hanno.struct.benchmark.de.hanno.struct.benchmark.kotlin.IterateAndMutateStructArrayIndexed;
+import de.hanno.struct.benchmark.de.hanno.struct.benchmark.kotlin.IterateStruct;
 import kotlin.Unit;
 import org.lwjgl.BufferUtils;
 import org.openjdk.jmh.annotations.Benchmark;
@@ -15,16 +18,13 @@ import static de.hanno.struct.StructArrayKt.forEach;
 
 public class StructBenchmark {
 
-    private static final int size = 5000;
+    public static final int size = 5000;
 
-    private static StaticStructArray<JavaStruct> structArray = new StaticStructArray<>(null, size, JavaStruct::new);
     private static ArrayList<JavaVanilla> vanillaArrayList = new ArrayList<>(size);
 
-    private static StaticStructArray<JavaMutableStruct> mutableStructArray = new StaticStructArray<>(null, size, JavaMutableStruct::new);
-    private static StaticStructArray<JavaMutableStruct> mutableStructArrayIndexIteration = new StaticStructArray<>(null, size, JavaMutableStruct::new);
     private static ArrayList<JavaMutableVanilla> mutableVanillaArrayList = new ArrayList<>(size);
 
-    private static StaticStructArray<JavaMutableStruct> resizableMutableStructArray = new StaticStructArray<>(null, size, JavaMutableStruct::new);
+    private static StaticStructArray<SimpleMutableStruct> resizableMutableStructArray = new StaticStructArray<>(null, size, SimpleMutableStruct::new);
 
     static {
         for (int i = 0; i < size; i++) {
@@ -62,40 +62,32 @@ public class StructBenchmark {
     @Measurement(iterations = 2)
     @Warmup(iterations = 2)
     public void iterateStruct(Blackhole hole) {
-        forEach(structArray, false, (JavaStruct struct) -> {
-            hole.consume(struct);
-            return Unit.INSTANCE;
-        });
+        IterateStruct.Companion.run(hole);
     }
 
     @Benchmark
     @Measurement(iterations = 2)
     @Warmup(iterations = 2)
     public void iterateVanilla(Blackhole hole) {
-        vanillaArrayList.forEach(hole::consume);
+        vanillaArrayList.forEach((it) -> {
+            hole.consume(it.getA());
+            hole.consume(it.getB());
+            hole.consume(it.getC());
+        });
     }
 
     @Benchmark
     @Measurement(iterations = 2)
     @Warmup(iterations = 2)
     public void iterateAndMutateStructArray(Blackhole hole) {
-        forEach(mutableStructArray, false, (JavaMutableStruct struct) -> {
-            struct.setA(struct.getA() + 1);
-            struct.setB(struct.getB() + 2);
-            struct.setC(struct.getC() + 3);
-            return Unit.INSTANCE;
-        });
+        IterateAndMutateStructArray.Companion.run(hole);
     }
+
     @Benchmark
     @Measurement(iterations = 2)
     @Warmup(iterations = 2)
     public void iterateAndMutateStructArrayIndexed(Blackhole hole) {
-        for(int i = 0; i < mutableStructArrayIndexIteration.getSize(); i++) {
-            final JavaMutableStruct struct = mutableStructArrayIndexIteration.getAtIndex(i);
-            struct.setA(struct.getA() + 1);
-            struct.setB(struct.getB() + 2);
-            struct.setC(struct.getC() + 3);
-        }
+        IterateAndMutateStructArrayIndexed.Companion.run(hole);
     }
 
     @Benchmark
@@ -117,6 +109,7 @@ public class StructBenchmark {
             simpleSlidingWindow.setX(simpleSlidingWindow.getX() + 1);
             simpleSlidingWindow.setY(simpleSlidingWindow.getY() + 2);
             simpleSlidingWindow.setZ(simpleSlidingWindow.getZ() + 3);
+            hole.consume(simpleSlidingWindow);
         }
     }
 
@@ -129,6 +122,7 @@ public class StructBenchmark {
             kotlinSimpleSlidingWindow.setX(kotlinSimpleSlidingWindow.getX() + 1);
             kotlinSimpleSlidingWindow.setY(kotlinSimpleSlidingWindow.getY() + 2);
             kotlinSimpleSlidingWindow.setZ(kotlinSimpleSlidingWindow.getZ() + 3);
+            hole.consume(kotlinSimpleSlidingWindow);
         }
     }
 
@@ -141,6 +135,7 @@ public class StructBenchmark {
             kotlinDelegatedPropertySimpleSlidingWindow.setX(kotlinDelegatedPropertySimpleSlidingWindow.getX() + 1);
             kotlinDelegatedPropertySimpleSlidingWindow.setY(kotlinDelegatedPropertySimpleSlidingWindow.getY() + 2);
             kotlinDelegatedPropertySimpleSlidingWindow.setZ(kotlinDelegatedPropertySimpleSlidingWindow.getZ() + 3);
+            hole.consume(kotlinDelegatedPropertySimpleSlidingWindow);
         }
     }
     @Benchmark
@@ -152,6 +147,7 @@ public class StructBenchmark {
             kotlinDelegatedPropertyUnsafeSimpleSlidingWindow.setX(kotlinDelegatedPropertyUnsafeSimpleSlidingWindow.getX() + 1);
             kotlinDelegatedPropertyUnsafeSimpleSlidingWindow.setY(kotlinDelegatedPropertyUnsafeSimpleSlidingWindow.getY() + 2);
             kotlinDelegatedPropertyUnsafeSimpleSlidingWindow.setZ(kotlinDelegatedPropertyUnsafeSimpleSlidingWindow.getZ() + 3);
+            hole.consume(kotlinDelegatedPropertyUnsafeSimpleSlidingWindow);
         }
     }
 
@@ -164,6 +160,7 @@ public class StructBenchmark {
             kotlinDelegatedPropertyUnsafeSlidingWindow.setX(kotlinDelegatedPropertyUnsafeSlidingWindow.getX() + 1);
             kotlinDelegatedPropertyUnsafeSlidingWindow.setY(kotlinDelegatedPropertyUnsafeSlidingWindow.getY() + 2);
             kotlinDelegatedPropertyUnsafeSlidingWindow.setZ(kotlinDelegatedPropertyUnsafeSlidingWindow.getZ() + 3);
+            hole.consume(kotlinDelegatedPropertyUnsafeSlidingWindow);
         }
     }
 
@@ -171,10 +168,11 @@ public class StructBenchmark {
     @Measurement(iterations = 2)
     @Warmup(iterations = 2)
     public void iterateAndMutateResizableStruct(Blackhole hole) {
-        forEach(resizableMutableStructArray, false, (JavaMutableStruct struct) -> {
+        forEach(resizableMutableStructArray, false, (SimpleMutableStruct struct) -> {
             struct.setA(struct.getA() + 1);
             struct.setB(struct.getB() + 2);
             struct.setC(struct.getC() + 3);
+            hole.consume(struct);
             return Unit.INSTANCE;
         });
     }
