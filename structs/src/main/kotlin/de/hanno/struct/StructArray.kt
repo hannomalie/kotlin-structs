@@ -15,12 +15,11 @@ interface StructArray<T>: Structable {
 class StaticStructArray<T: Struct>(parent: Struct? = null, override val size: Int, override val factory: (Struct) -> T): StructArray<T>, Struct(parent) {
     override val indices: IntRange
         get() = IntRange(0, size)
-    override val baseByteOffset = parent?.getCurrentLocalByteOffset() ?: 0
     override val slidingWindow = factory(this)
     override val sizeInBytes = size * slidingWindow.sizeInBytes
 
     override fun getAtIndex(index: Int) : T {
-        slidingWindow.slidingWindowOffset = index * slidingWindow.sizeInBytes
+        slidingWindow.localByteOffset = (index * slidingWindow.sizeInBytes).toLong()
         return slidingWindow
     }
     override operator fun get(index: Int) = getAtIndex(index)
@@ -29,7 +28,6 @@ class StaticStructArray<T: Struct>(parent: Struct? = null, override val size: In
 class ResizableStructArray<T:Struct>(parent: Struct? = null, override var size: Int, override val factory: (Struct) -> T): StructArray<T>, Struct(parent) {
     override val indices: IntRange
         get() = IntRange(0, size)
-    override val baseByteOffset = parent?.getCurrentLocalByteOffset() ?: 0
     override var slidingWindow = factory(this)
     override val sizeInBytes = size * slidingWindow.sizeInBytes
 
@@ -41,7 +39,7 @@ class ResizableStructArray<T:Struct>(parent: Struct? = null, override var size: 
         }
 
     override fun getAtIndex(index: Int) : T {
-        slidingWindow.slidingWindowOffset = index * slidingWindow.sizeInBytes
+        slidingWindow.localByteOffset = (index * slidingWindow.sizeInBytes).toLong()
         return slidingWindow
     }
     override operator fun get(index: Int) = getAtIndex(index)
@@ -74,11 +72,11 @@ class ResizableStructArray<T:Struct>(parent: Struct? = null, override var size: 
     }
 }
 
-@JvmOverloads inline fun <T:Struct> StructArray<T>.forEach(rewindBuffer: Boolean = true, noinline function: (T) -> Unit) {
+@JvmOverloads inline fun <T:Struct> StructArray<T>.forEach(rewindBuffer: Boolean = true, function: (T) -> Unit) {
     buffer.forEach(rewindBuffer, slidingWindow, function)
 }
 
-@JvmOverloads inline fun <T:Struct> StructArray<T>.forEachIndexed(rewindBuffer: Boolean = true, noinline function: (Int, T) -> Unit) {
+@JvmOverloads inline fun <T:Struct> StructArray<T>.forEachIndexed(rewindBuffer: Boolean = true, function: (Int, T) -> Unit) {
     this.buffer.forEachIndexed(rewindBuffer, slidingWindow, function)
 }
 
@@ -140,7 +138,7 @@ class ResizableStructArray<T:Struct>(parent: Struct? = null, override var size: 
     }
 }
 
-@JvmOverloads inline fun <T:Struct> ByteBuffer.forEach(rewindBuffer: Boolean = true, slidingWindow: T, crossinline function: (T) -> Unit) {
+@JvmOverloads inline fun <T:Struct> ByteBuffer.forEach(rewindBuffer: Boolean = true, slidingWindow: T, function: (T) -> Unit) {
     val positionBefore = position()
     if (rewindBuffer) {
         rewind()
@@ -150,7 +148,7 @@ class ResizableStructArray<T:Struct>(parent: Struct? = null, override var size: 
     val capacity = capacity()
     val slidingWindowSize = slidingWindow.sizeInBytes
     while(counter* slidingWindowSize <= capacity - slidingWindowSize) {
-        slidingWindow.slidingWindowOffset = counter * slidingWindowSize
+        slidingWindow.localByteOffset = (counter * slidingWindowSize).toLong()
         function(slidingWindow)
         counter++
     }
@@ -171,7 +169,7 @@ class ResizableStructArray<T:Struct>(parent: Struct? = null, override var size: 
     val capacity = capacity()
     val slidingWindowSize = slidingWindow.sizeInBytes
     while(counter* slidingWindowSize <= capacity - slidingWindowSize) {
-        slidingWindow.slidingWindowOffset = counter * slidingWindowSize
+        slidingWindow.localByteOffset = (counter * slidingWindowSize).toLong()
         function(counter, slidingWindow)
         counter++
     }

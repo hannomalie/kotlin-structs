@@ -91,12 +91,11 @@ abstract class Struct(val parent: Structable? = null): Structable {
     override val sizeInBytes by lazy {
         memberStructs.sumBy { it.sizeInBytes }
     }
-    override val baseByteOffset: Long = parent?.getCurrentLocalByteOffset() ?: 0
-        get() {
-            return field + (parent?.baseByteOffset ?: 0) + slidingWindowOffset
-        }
+    var localByteOffset: Long = parent?.getCurrentLocalByteOffset() ?: 0
 
-    var slidingWindowOffset = 0
+    final override val baseByteOffset: Long
+        get() = localByteOffset + (parent?.baseByteOffset ?: 0)
+
     protected val ownBuffer by lazy { BufferUtils.createByteBuffer(sizeInBytes) }
     override val buffer by lazy { parent?.buffer ?: ownBuffer }
     fun usesOwnBuffer(): Boolean = ownBuffer === buffer
@@ -155,7 +154,7 @@ class LongProperty(override var localByteOffset: Long):StructProperty {
     inline operator fun getValue(thisRef: Structable, property: KProperty<*>) = StructProperty.Companion.getLong(thisRef.buffer, thisRef.baseByteOffset + localByteOffset)
 }
 class BooleanProperty(override var localByteOffset: Long):StructProperty {
-    override val sizeInBytes = 8
+    override val sizeInBytes = 4
 
     inline operator fun setValue(thisRef: Structable, property: KProperty<*>, value: Boolean) {
         putInt(thisRef.buffer, thisRef.baseByteOffset + localByteOffset, if(value) 1 else 0)

@@ -55,6 +55,6 @@ interface MemUtil {
 
 class Config {
     companion object {
-        var useUnsafe: Boolean = true
+        var useUnsafe: Boolean = false
     }
 }

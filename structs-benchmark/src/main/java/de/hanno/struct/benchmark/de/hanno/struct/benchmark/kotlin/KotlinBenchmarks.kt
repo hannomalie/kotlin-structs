@@ -17,6 +17,7 @@ class IterateAndMutateStructArray {
                 struct.a = struct.a + 1
                 struct.b = struct.b + 2
                 struct.c = struct.c + 3
+                hole.consume(struct)
             }
         }
     }
@@ -30,6 +31,7 @@ class IterateAndMutateStructArrayIndexed {
                 struct.a = struct.a + 1
                 struct.b = struct.b + 2
                 struct.c = struct.c + 3
+                hole.consume(struct)
             }
         }
     }

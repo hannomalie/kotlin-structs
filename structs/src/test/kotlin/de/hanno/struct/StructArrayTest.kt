@@ -147,7 +147,7 @@ class StructArrayTest {
 
         structArray.forEachIndexed { index, current ->
             assertSame(current.buffer, structArray.buffer)
-            assertEquals((index) * current.sizeInBytes, current.slidingWindowOffset)
+            assertEquals((index * current.sizeInBytes).toLong(), current.baseByteOffset)
             current.myInt = index
         }
 
@@ -161,7 +161,7 @@ class StructArrayTest {
 
         structArray.forEachIndexed { index, current ->
             assertSame(current.buffer, structArray.buffer)
-            assertEquals((index) * current.sizeInBytes, current.slidingWindowOffset)
+            assertEquals((index * current.sizeInBytes).toLong(), current.baseByteOffset)
             current.myInt = index
         }
 
@@ -172,7 +172,7 @@ class StructArrayTest {
 
     private fun checkResultArray(structArray: StructArray<MyStruct>) {
         structArray.forEachIndexed { index, current ->
-            assertEquals((index) * current.sizeInBytes, current.slidingWindowOffset)
+            assertEquals((index * current.sizeInBytes).toLong(), current.baseByteOffset)
             assertEquals(index, current.myInt)
         }
 
