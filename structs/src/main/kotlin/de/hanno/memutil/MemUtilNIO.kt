@@ -32,4 +32,5 @@ class MemUtilNIO : MemUtil {
     }
 
     override fun getInt(dst: ByteBuffer, offset: Long): Int = dst.getInt(offset.toInt())
+
 }

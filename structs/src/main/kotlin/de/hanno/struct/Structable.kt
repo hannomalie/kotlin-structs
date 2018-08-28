@@ -51,7 +51,9 @@ interface Structable: Bufferable {
 
     operator fun <FIELD: Structable> FIELD.provideDelegate(thisRef: Structable, prop: KProperty<*>): GenericStructProperty<Structable, FIELD> {
         return object : GenericStructProperty<Structable, FIELD>() {
-            override val sizeInBytes = this@provideDelegate.sizeInBytes
+            override val sizeInBytes by lazy {
+                this@provideDelegate.sizeInBytes
+            }
             override val localByteOffset = thisRef.getCurrentLocalByteOffset()
             override var currentRef = this@provideDelegate
 
@@ -94,7 +96,7 @@ abstract class Struct(val parent: Structable? = null): Structable {
     var localByteOffset: Long = parent?.getCurrentLocalByteOffset() ?: 0
 
     final override val baseByteOffset: Long
-        get() = localByteOffset + (parent?.baseByteOffset ?: 0)
+        inline get() = localByteOffset + (parent?.baseByteOffset ?: 0)
 
     protected val ownBuffer by lazy { BufferUtils.createByteBuffer(sizeInBytes) }
     override val buffer by lazy { parent?.buffer ?: ownBuffer }
@@ -126,6 +128,7 @@ class IntProperty(override var localByteOffset: Long):StructProperty {
         putInt(thisRef.buffer, thisRef.baseByteOffset + localByteOffset, value)
     }
     inline operator fun getValue(thisRef: Structable, property: KProperty<*>) = StructProperty.Companion.getInt(thisRef.buffer, thisRef.baseByteOffset + localByteOffset)
+
 }
 
 class FloatProperty(override var localByteOffset: Long):StructProperty {
