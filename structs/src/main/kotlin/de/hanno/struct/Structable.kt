@@ -35,7 +35,6 @@ interface Structable: Bufferable {
     operator fun Double.provideDelegate(thisRef: Structable, prop: KProperty<*>): DoubleProperty {
         return DoubleProperty(getCurrentLocalByteOffset())
                 .apply { thisRef.register(this@apply) }
-                .apply { this.setValue(thisRef, prop, this@provideDelegate) }
                 .apply { if(this@provideDelegate != .0) this.setValue(thisRef, prop, this@provideDelegate) }
     }
     operator fun Long.provideDelegate(thisRef: Structable, prop: KProperty<*>): LongProperty {
