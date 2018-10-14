@@ -4,15 +4,17 @@ import org.lwjgl.BufferUtils
 import java.nio.ByteBuffer
 
 interface StructArray<T>: Structable {
-    val slidingWindow: T
     val size: Int
-    val factory: (Struct) -> T
     fun getAtIndex(index: Int) : T
     val indices: IntRange
     operator fun get(index: Int): T
 }
+interface SlidingWindowStructArray<T>: StructArray<T> {
+    val slidingWindow: T
+    val factory: (Struct) -> T
+}
 
-class StaticStructArray<T: Struct>(parent: Struct? = null, override val size: Int, override val factory: (Struct) -> T): StructArray<T>, Struct(parent) {
+class StaticStructArray<T: Struct>(parent: Struct? = null, override val size: Int, override val factory: (Struct) -> T): SlidingWindowStructArray<T>, Struct(parent) {
     override val indices: IntRange
         get() = IntRange(0, size)
     override val slidingWindow = factory(this)
@@ -25,7 +27,25 @@ class StaticStructArray<T: Struct>(parent: Struct? = null, override val size: In
     override operator fun get(index: Int) = getAtIndex(index)
 }
 
-class ResizableStructArray<T:Struct>(parent: Struct? = null, override var size: Int, override val factory: (Struct) -> T): StructArray<T>, Struct(parent) {
+class StaticStructObjectArray<T: Struct>(parent: Struct? = null, override val size: Int, val factory: (Struct) -> T): StructArray<T>, Struct(parent) {
+    val backingList = mutableListOf<T>()
+    init {
+        for(i in 0 until size) {
+            val element = factory(this).apply {
+                backingList.add(this)
+            }
+            this.register(element)
+        }
+    }
+
+    override val indices: IntRange
+        get() = IntRange(0, size)
+
+    override fun getAtIndex(index: Int) = backingList[index]
+    override operator fun get(index: Int) = getAtIndex(index)
+}
+
+class ResizableStructArray<T:Struct>(parent: Struct? = null, override var size: Int, override val factory: (Struct) -> T): SlidingWindowStructArray<T>, Struct(parent) {
     override val indices: IntRange
         get() = IntRange(0, size)
     override var slidingWindow = factory(this)
@@ -72,11 +92,11 @@ class ResizableStructArray<T:Struct>(parent: Struct? = null, override var size: 
     }
 }
 
-@JvmOverloads inline fun <T:Struct> StructArray<T>.forEach(rewindBuffer: Boolean = true, function: (T) -> Unit) {
+@JvmOverloads inline fun <T:Struct> SlidingWindowStructArray<T>.forEach(rewindBuffer: Boolean = true, function: (T) -> Unit) {
     buffer.forEach(rewindBuffer, slidingWindow, function)
 }
 
-@JvmOverloads inline fun <T:Struct> StructArray<T>.forEachIndexed(rewindBuffer: Boolean = true, function: (Int, T) -> Unit) {
+@JvmOverloads inline fun <T:Struct> SlidingWindowStructArray<T>.forEachIndexed(rewindBuffer: Boolean = true, function: (Int, T) -> Unit) {
     this.buffer.forEachIndexed(rewindBuffer, slidingWindow, function)
 }
 
@@ -88,7 +108,7 @@ class ResizableStructArray<T:Struct>(parent: Struct? = null, override var size: 
     buffer.copyTo(target, rewindBuffers, 0)
 }
 
-@JvmOverloads fun <T: Struct> StructArray<T>.clone(rewindBuffer: Boolean = true): StaticStructArray<T> {
+@JvmOverloads fun <T: Struct> SlidingWindowStructArray<T>.clone(rewindBuffer: Boolean = true): StaticStructArray<T> {
     return StaticStructArray(size = this.size, factory = this.factory).apply {
         this@clone.copyTo(this@apply, true)
         if(rewindBuffer) {

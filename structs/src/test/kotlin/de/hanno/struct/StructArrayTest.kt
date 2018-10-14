@@ -170,7 +170,7 @@ class StructArrayTest {
         return structArray
     }
 
-    private fun checkResultArray(structArray: StructArray<MyStruct>) {
+    private fun checkResultArray(structArray: SlidingWindowStructArray<MyStruct>) {
         structArray.forEachIndexed { index, current ->
             assertEquals((index * current.sizeInBytes).toLong(), current.baseByteOffset)
             assertEquals(index, current.myInt)
@@ -188,6 +188,25 @@ class StructArrayTest {
             Assert.assertEquals(7, int)
             Assert.assertEquals(8, int)
             Assert.assertEquals(9, int)
+        }
+    }
+
+    @Test
+    fun testStructObjectArray() {
+        class StructObject(parent: Struct?): Struct(parent) {
+            var a by 0
+            val aString = "aString"
+        }
+        val array = StaticStructObjectArray(size = 10, factory = { struct -> StructObject(struct) })
+        for(i in 0 until array.size) {
+            array[i].a = i
+        }
+
+        Assert.assertEquals(10, array.size)
+        Assert.assertEquals(10, array.backingList.size)
+        for(i in 0 until array.size) {
+            Assert.assertEquals(i, array[i].a)
+            Assert.assertEquals("aString", array[i].aString)
         }
     }
 

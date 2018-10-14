@@ -61,6 +61,15 @@ interface Structable: Bufferable {
 
 //    TODO: Make more specific extension method for resizablestructarray and freeze struct afterwards -> struct members not supported dynamic
 
+    fun <T: Struct> register(struct: T) {
+        register(object : GenericStructProperty<Structable, T>() {
+            override val sizeInBytes by lazy {
+                struct.sizeInBytes
+            }
+            override val localByteOffset = this@Structable.getCurrentLocalByteOffset()
+            override var currentRef = struct
+        })
+    }
     fun register(structProperty: StructProperty) {
         memberStructs.add(structProperty)
     }
