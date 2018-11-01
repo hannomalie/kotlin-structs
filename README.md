@@ -130,3 +130,70 @@ for(i in 0 until array.size) {
     Assert.assertEquals("aString", array[i].aString)
 }
 ```
+
+# The good things
+
+* You can control your object's memory layouts for native interop
+* You are memory efficient, because you possibly get rid of a lot of Java objects
+* The user can use struct objects as POJOs/POKOs
+* You can copy parts of structs, structs or arrays of structs with a simple memcopy, no more object tree traversal
+* You could use backing buffers as persistence layer and just write it to/read it from a file. Should be super fast.
+* Simply add members to your struct to fulfill special layouts, like std430 from OpenGL etc.
+
+# Restrictions - the bad things
+
+* Inherently mutable. If you provide the backing buffer of a structure, it can be manipulated at will, no matter if your
+  classes use val or var
+* Possibly bypasses JIT optimizations. Compared to regular objects and usage of primitves/primitve arrays, the JIT compiler
+  can't help you much when you use ByteBuffer instances. Although theoretically, a sliding window iteration over a fixed ByteBuffer
+  instance should be extremely fast and super cache friendly, I found my approach to never be as fast as native JVM object usage. For     example [this article](https://dzone.com/articles/compact-heap-structurestuples) shows it can easily be way faster, but my experiments don't approve this. The project contains a benchmark project that can be run with JMH. Feel free to test on your machine. [This blogpost](http://hannosprogrammingblog.blogspot.com/2018/09/kind-of-structs-on-jvm-using-kotlins.html) contains some benchmark numbers, where I compared simple, non-abstracted approaches that operate directly on a ByteBuffer with succesively more abstracted approaches that peak in this libary's approach. For my use cases, iteration performance is not that crucial, because I benefit from being able to memcopy big object graphs with a triple buffer renderstate construct in my multithreaded game engine.
+* Parent parameter passing. The current implementation needs parent parameters in order to allow nesting. This is damn ugly and forces a struct author to not forget about it, otherwise his structs can't be nested. Another implementation option here would be to make a struct's parent mutable. I have no idea about performance implications and problems with reassignments.
+* Non-default values. In order to allow non-default values for struct properties, one has to assign the given value at property initialization, because there is simply no "hook" that could be used after the object is constructed. In order to avoid an "init" method, lazy buffer creation has to be dropped. This way, the allocated backing memory can be used when a property is initialized. See implementation details below.
+* Very difficult to use inheritance and initialization logic, because it's easy to corrupt the usage of lazy properties for object's sizes and buffer creation
+* Currently, delegated properties store delegate instances into your object. This could be eliminated with inline classes (in Kotlin 1.3), but my last try with a Kotlin preview build crashed with bytecode manipualtion errors.
+
+# Implementation details
+## Delegated properties
+Delegated properties are the heart of this implementation. Kotlin allows you to hide your backing data structure from the user of your classe's instances. [Here's an example](https://kotlinlang.org/docs/reference/delegated-properties.html#storing-properties-in-a-map) for a map-backed class. The nice thing is, that your objects can be used as regular POJOs/POKOs. I use delegated properties of the form
+```
+class IntProperty(override var localByteOffset: Long):StructProperty {
+    override val sizeInBytes = 4
+
+    inline operator fun setValue(thisRef: Structable, property: KProperty<*>, value: Int) {
+        putInt(thisRef.buffer, thisRef.baseByteOffset + localByteOffset, value)
+    }
+    inline operator fun getValue(thisRef: Structable, property: KProperty<*>) = StructProperty.Companion.getInt(thisRef.buffer, thisRef.baseByteOffset + localByteOffset)
+}
+```
+to represent object properties. The _Structable_ interface contains some scoped extension functions like
+```
+
+operator fun Int.provideDelegate(thisRef: Structable, prop: KProperty<*>): IntProperty {
+   return IntProperty(getCurrentLocalByteOffset())
+      .apply { thisRef.register(this@apply) }
+      .apply { if(this@provideDelegate != 0) this.setValue(thisRef, prop, this@provideDelegate) }
+}
+```
+
+For convenience, there's an abstract base class, that provides necessary state that a struct always needs.
+```
+abstract class Struct(val parent: Structable? = null): Structable {
+    override val memberStructs = mutableListOf<StructProperty>()
+    override val sizeInBytes by lazy {
+        memberStructs.sumBy { it.sizeInBytes }
+    }
+    var localByteOffset: Long = parent?.getCurrentLocalByteOffset() ?: 0
+
+    final override val baseByteOffset: Long
+        inline get() = localByteOffset + (parent?.baseByteOffset ?: 0)
+
+    protected val ownBuffer by lazy { BufferUtils.createByteBuffer(sizeInBytes) }
+    override val buffer by lazy { parent?.buffer ?: ownBuffer }
+    fun usesOwnBuffer(): Boolean = ownBuffer === buffer
+}
+```
+All member structs are registered and can be queried. That means the delegate instances can as well be used directly to do things. The sizeInBytes is determined by the sum of all nested struct properties...that means it can be calculated lazily. Downside: If you query this value somewhere in between object initialization, things can go wrong. This can be an issue when inheritance is used (which would work, but is difficult to use). The buffer can be created when all child structs are known, hence this can be calculated lazily as well here. If the struct is nested, the parent's buffer is used.
+
+# Feedback
+
+If you're interested in this project, if you do engine or graphics programming and want to talk about experience, please let me know :)
