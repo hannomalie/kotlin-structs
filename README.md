@@ -197,3 +197,23 @@ All member structs are registered and can be queried. That means the delegate in
 # Feedback
 
 If you're interested in this project, if you do engine or graphics programming and want to talk about experience, please let me know :)
+
+# Appendix
+
+## Benchmarks
+Some of the ebove mentioned benchmarks from a blog post of mine at http://hannosprogrammingblog.blogspot.com/2018/09/kind-of-structs-on-jvm-using-kotlins.html . Please understand that it's very complicated to write about what was tested, how the implementations differ from each other and so on. If you want to have more than a rough overview about what dimensions of performance differences we're talking here, take a look at the benchmarks module :)
+
+Mode | Cnt   |   Score  |   Error | Units
+| ------------ |:-----:| -------:|-----|----|
+iterAndMutBufferDirect|                                          thrpt   12 | 90626,796| ± 303,407|  ops/s
+iterAndMutKotlinDelegatedPropertySlidingWindowBuffer    |        thrpt   12 | 23695,594| ±  82,291|  ops/s
+iterAndMutKotlinDelegatedPropertyUnsafeSimpleSlidingWindowBuffer|thrpt   12 | 27906,315| ±  52,382|  ops/s
+iterAndMutKotlinDelegatedPropertyUnsafeSlidingWindowBuffer      |thrpt   12 | 25736,322| ± 904,017|  ops/s
+iterAndMutKotlinSimpleSlidingWindowBuffer                        |thrpt   12 | 27416,212| ± 959,016|  ops/s
+iterAndMutResizableStruct                                        |thrpt   12 | 10204,870| ± 189,237|  ops/s
+iterAndMutSimpleSlidingWindowBuffer                              |thrpt   12 | 27627,217| ± 122,119|  ops/s
+iterAndMutStructArray                                            |thrpt   12 | 12714,642| ±  51,275|  ops/s
+iterAndMutStructArrayIndexed                                    |thrpt   12 | 11110,882| ±  26,910|  ops/s
+iterAndMutVanilla                                                |thrpt   12 | 27111,335| ± 661,822|  ops/s
+iterStruct                                                      |thrpt   12 | 13240,723| ±  40,612|  ops/s
+iterVanilla                                                      |thrpt   12 | 21452,188| ±  46,380|  ops/s
