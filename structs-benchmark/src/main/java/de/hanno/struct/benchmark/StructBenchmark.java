@@ -28,7 +28,7 @@ public class StructBenchmark {
 
     private static ArrayList<JavaMutableVanilla> mutableVanillaArrayList = new ArrayList<>(size);
 
-    private static StaticStructArray<SimpleMutableStruct> resizableMutableStructArray = new StaticStructArray<>(null, size, SimpleMutableStruct::new);
+    private static StaticStructArray<SimpleMutableStruct> resizableMutableStructArray = new StaticStructArray<>(size, SimpleMutableStruct::new);
 
     static {
         for (int i = 0; i < size; i++) {

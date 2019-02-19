@@ -14,10 +14,12 @@ interface SlidingWindowStructArray<T>: StructArray<T> {
     val factory: (Struct) -> T
 }
 
-class StaticStructArray<T: Struct>(parent: Struct? = null, override val size: Int, override val factory: (Struct) -> T): SlidingWindowStructArray<T>, Struct(parent) {
+class StaticStructArray<T: Struct>(override val size: Int, override val factory: (Struct) -> T): SlidingWindowStructArray<T>, Struct() {
     override val indices: IntRange
         get() = IntRange(0, size)
-    override val slidingWindow = factory(this)
+    override val slidingWindow = factory(this).apply {
+        this.parent = this@StaticStructArray
+    }
     override val sizeInBytes = size * slidingWindow.sizeInBytes
 
     override fun getAtIndex(index: Int) : T {
@@ -27,7 +29,7 @@ class StaticStructArray<T: Struct>(parent: Struct? = null, override val size: In
     override operator fun get(index: Int) = getAtIndex(index)
 }
 
-class StaticStructObjectArray<T: Struct>(parent: Struct? = null, override val size: Int, val factory: (Struct) -> T): StructArray<T>, Struct(parent) {
+class StaticStructObjectArray<T: Struct>(override val size: Int, val factory: (Struct) -> T): StructArray<T>, Struct() {
     val backingList = mutableListOf<T>()
     init {
         for(i in 0 until size) {
@@ -45,17 +47,21 @@ class StaticStructObjectArray<T: Struct>(parent: Struct? = null, override val si
     override operator fun get(index: Int) = getAtIndex(index)
 }
 
-class ResizableStructArray<T:Struct>(parent: Struct? = null, override var size: Int, override val factory: (Struct) -> T): SlidingWindowStructArray<T>, Struct(parent) {
+class ResizableStructArray<T:Struct>(override var size: Int, override val factory: (Struct) -> T): SlidingWindowStructArray<T>, Struct() {
     override val indices: IntRange
-        get() = IntRange(0, size)
-    override var slidingWindow = factory(this)
+        get() = 0..size
+    override var slidingWindow = factory(this).apply {
+        this@apply.parent = this@ResizableStructArray
+    }
     override val sizeInBytes = size * slidingWindow.sizeInBytes
 
 
     override var buffer: ByteBuffer = super.buffer
         set(value) {
             field = value
-            slidingWindow = factory(this)
+            slidingWindow = factory(this).apply {
+                this@apply.parent = this@ResizableStructArray
+            }
         }
 
     override fun getAtIndex(index: Int) : T {

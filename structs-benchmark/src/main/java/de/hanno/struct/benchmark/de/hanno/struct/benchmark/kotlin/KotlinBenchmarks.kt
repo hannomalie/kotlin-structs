@@ -11,7 +11,7 @@ import org.openjdk.jmh.infra.Blackhole
 
 class IterateAndMutateStructArray {
     companion object {
-        @JvmStatic private val mutableStructArray = StaticStructArray(null, StructBenchmark.size) { parent: Struct -> SimpleMutableStruct(parent) }
+        @JvmStatic private val mutableStructArray = StaticStructArray(StructBenchmark.size) { parent: Struct -> SimpleMutableStruct(parent) }
         @JvmStatic fun run(hole: Blackhole) {
             mutableStructArray.forEach(false) { struct: SimpleMutableStruct ->
                 struct.a = struct.a + 1
@@ -24,7 +24,7 @@ class IterateAndMutateStructArray {
 }
 class IterateAndMutateStructArrayIndexed {
     companion object {
-        @JvmStatic private val mutableStructArrayIndexIteration = StaticStructArray(null, size) { parent: Struct -> SimpleMutableStruct(parent) }
+        @JvmStatic private val mutableStructArrayIndexIteration = StaticStructArray(size) { parent: Struct -> SimpleMutableStruct(parent) }
         @JvmStatic fun run(hole: Blackhole) {
             for (i in 0 until mutableStructArrayIndexIteration.size) {
                 val struct = mutableStructArrayIndexIteration.getAtIndex(i)
@@ -38,7 +38,7 @@ class IterateAndMutateStructArrayIndexed {
 }
 class IterateStruct {
     companion object {
-        @JvmStatic private val structArray = StaticStructArray(null, size) { parent: Struct -> SimpleStruct(parent) }
+        @JvmStatic private val structArray = StaticStructArray(size) { parent: Struct -> SimpleStruct(parent) }
         @JvmStatic fun run(hole: Blackhole) {
             structArray.forEach(false) { struct: SimpleStruct ->
                 hole.consume(struct.a)

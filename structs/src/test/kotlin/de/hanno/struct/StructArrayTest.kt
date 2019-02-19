@@ -8,7 +8,7 @@ import org.lwjgl.BufferUtils
 
 class StructArrayTest {
 
-    class MyStruct(parent: Struct? = null) : Struct(parent) {
+    class MyStruct : Struct() {
         var myInt by 0
     }
 
@@ -42,7 +42,9 @@ class StructArrayTest {
         array.resize(11)
 
         for(i in 0..9) {
-            Assert.assertEquals(i, array.getAtIndex(i).myInt)
+            val atIndex = array.getAtIndex(i)
+            Assert.assertSame(array.buffer, atIndex.buffer)
+            Assert.assertEquals(i, atIndex.myInt)
         }
     }
 
@@ -50,7 +52,7 @@ class StructArrayTest {
     fun testArrayInStruct() {
         class ArrayHolderStruct : Struct() {
             var myInt by 0
-            var nestedArray by StaticStructArray(this, 10) { MyStruct(it) }
+            var nestedArray by StaticStructArray(10) { MyStruct() }
         }
 
         val holder = ArrayHolderStruct()
@@ -82,7 +84,7 @@ class StructArrayTest {
     @Test
     fun testStructArrayCopy() {
         val source = prepareAnArray()
-        val target = de.hanno.struct.StaticStructArray(null, 10) { MyStruct(it) }
+        val target = de.hanno.struct.StaticStructArray(10) { MyStruct() }
 
         source.copyTo(target)
 
@@ -122,7 +124,7 @@ class StructArrayTest {
 
     @Test
     fun testResize() {
-        val source = ResizableStructArray(null, 10){ MyStruct(it) }
+        val source = ResizableStructArray(10){ MyStruct() }
         Assert.assertEquals(10, source.size)
 
         var bufferBefore = source.buffer
@@ -143,7 +145,7 @@ class StructArrayTest {
 
     private fun prepareAnArray(): StaticStructArray<MyStruct> {
 
-        val structArray = StaticStructArray(null, 10) { MyStruct(it) }
+        val structArray = StaticStructArray(10) { MyStruct() }
 
         structArray.forEachIndexed { index, current ->
             assertSame(current.buffer, structArray.buffer)
@@ -157,7 +159,7 @@ class StructArrayTest {
     }
     private fun prepareAResizableArray(): ResizableStructArray<MyStruct> {
 
-        val structArray = ResizableStructArray(null, 10) { MyStruct(it) }
+        val structArray = ResizableStructArray(10) { MyStruct() }
 
         structArray.forEachIndexed { index, current ->
             assertSame(current.buffer, structArray.buffer)
@@ -193,11 +195,11 @@ class StructArrayTest {
 
     @Test
     fun testStructObjectArray() {
-        class StructObject(parent: Struct?): Struct(parent) {
+        class StructObject : Struct() {
             var a by 0
             val aString = "aString"
         }
-        val array = StaticStructObjectArray(size = 10, factory = { struct -> StructObject(struct) })
+        val array = StaticStructObjectArray(size = 10, factory = { StructObject() })
         for(i in 0 until array.size) {
             array[i].a = i
         }
@@ -213,18 +215,18 @@ class StructArrayTest {
 
     companion object {
 
-        class Vector3f(parent: Struct? = null) : Struct(parent) {
+        class Vector3f : Struct() {
             var x by 0.0f
             var y by 0.0f
             var z by 0.0f
         }
-        class MyStruct(parent: Struct? = null) : Struct(parent) {
+        class MyStruct : Struct() {
             var myInt by 0
-            val position by Vector3f(this)
+            val position by Vector3f()
         }
 
         @JvmStatic fun main(args: Array<String>) {
-            val array = StaticStructArray(null, 20000) { MyStruct(it) }
+            val array = StaticStructArray(20000) { MyStruct() }
             while (true) {
                 array.forEach {
                     it.myInt++
