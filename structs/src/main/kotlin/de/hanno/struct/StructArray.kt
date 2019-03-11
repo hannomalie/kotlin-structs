@@ -15,8 +15,7 @@ interface SlidingWindowStructArray<T>: StructArray<T> {
 }
 
 class StaticStructArray<T: Struct>(override val size: Int, override val factory: (Struct) -> T): SlidingWindowStructArray<T>, Struct() {
-    override val indices: IntRange
-        get() = IntRange(0, size)
+    override val indices = IntRange(0, size)
     override val slidingWindow = factory(this).apply {
         this.parent = this@StaticStructArray
     }
