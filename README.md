@@ -54,7 +54,7 @@ struct NestedStruct {
    int   myInt;
 };
 */
-class NestedStruct(parent: Structable? = null) : Struct(parent) {
+class NestedStruct() : Struct() {
     var myMutableInt by 4 // not the default int value, complicated, look at restrictions section below
 }
 
@@ -67,7 +67,7 @@ struct MyStruct {
 class MyStruct: Struct() {
     // Creating the backing buffer eagerly, overriding the lazy behaviour, see restrictions section why
     override val buffer = BufferUtils.createByteBuffer(8)
-    val nestedStruct by NestedStruct(this) // passing this activates nesting
+    val nestedStruct by NestedStruct()
     var myMutableFloat by 4.0f
 }
 
@@ -92,11 +92,11 @@ approach is the most memory friendly one, because it only creates a compact bloc
 and a single instance of your class.
 
 ```
-class MyStruct(parent: Structable? = null) : Struct(parent) {
+class MyStruct : Struct() {
     var myMutableInt by 0
 }
 // passes factory that is used to create the sliding window
-val structArray = StaticStructArray(10) { MyStruct(it) }
+val structArray = StaticStructArray(10) { MyStruct() }
 
 structArray.forEachIndexed { index, current ->
     current.myMutableInt = index
@@ -118,7 +118,7 @@ class StructObject(parent: Struct?): Struct(parent) {
     var a by 0
     val aString = "aString" // won't be part of the backing buffer
 }
-val array = StaticStructObjectArray(size = 10, factory = { struct -> StructObject(struct) })
+val array = StaticStructObjectArray(size = 10, factory = { StructObject() })
 for(i in 0 until array.size) {
     array[i].a = i
 }
@@ -147,7 +147,6 @@ for(i in 0 until array.size) {
 * Possibly bypasses JIT optimizations. Compared to regular objects and usage of primitves/primitve arrays, the JIT compiler
   can't help you much when you use ByteBuffer instances. Although theoretically, a sliding window iteration over a fixed ByteBuffer
   instance should be extremely fast and super cache friendly, I found my approach to never be as fast as native JVM object usage. For     example [this article](https://dzone.com/articles/compact-heap-structurestuples) shows it can easily be way faster, but my experiments don't approve this. The project contains a benchmark project that can be run with JMH. Feel free to test on your machine. [This blogpost](http://hannosprogrammingblog.blogspot.com/2018/09/kind-of-structs-on-jvm-using-kotlins.html) contains some benchmark numbers, where I compared simple, non-abstracted approaches that operate directly on a ByteBuffer with succesively more abstracted approaches that peak in this libary's approach. For my use cases, iteration performance is not that crucial, because I benefit from being able to memcopy big object graphs with a triple buffer renderstate construct in my multithreaded game engine.
-* Parent parameter passing. The current implementation needs parent parameters in order to allow nesting. This is damn ugly and forces a struct author to not forget about it, otherwise his structs can't be nested. Another implementation option here would be to make a struct's parent mutable. I have no idea about performance implications and problems with reassignments.
 * Non-default values. In order to allow non-default values for struct properties, one has to assign the given value at property initialization, because there is simply no "hook" that could be used after the object is constructed. In order to avoid an "init" method, lazy buffer creation has to be dropped. This way, the allocated backing memory can be used when a property is initialized. See implementation details below.
 * Very difficult to use inheritance and initialization logic, because it's easy to corrupt the usage of lazy properties for object's sizes and buffer creation
 * Currently, delegated properties store delegate instances into your object. This could be eliminated with inline classes (in Kotlin 1.3), but my last try with a Kotlin preview build crashed with bytecode manipualtion errors.
