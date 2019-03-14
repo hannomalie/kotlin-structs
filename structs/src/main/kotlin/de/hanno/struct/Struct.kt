@@ -6,6 +6,7 @@ import de.hanno.struct.StructProperty.Companion.putFloat
 import de.hanno.struct.StructProperty.Companion.putInt
 import de.hanno.struct.StructProperty.Companion.putLong
 import org.lwjgl.BufferUtils
+import java.lang.IllegalStateException
 import java.nio.ByteBuffer
 import kotlin.reflect.KProperty
 
@@ -70,33 +71,19 @@ interface Structable: Bufferable {
     }
 
     operator fun <FIELD: Struct> FIELD.provideDelegate(thisRef: Struct, prop: KProperty<*>): GenericStructProperty<Structable, FIELD> {
-        return object : GenericStructProperty<Structable, FIELD>() {
-            override val sizeInBytes by lazy {
-                this@provideDelegate.sizeInBytes
-            }
-            override val localByteOffset = thisRef.getCurrentLocalByteOffset()
-            override var currentRef = this@provideDelegate
-
-        }.apply {
-            thisRef.register(this)
-            this@provideDelegate.localByteOffset = this.localByteOffset
-            this@provideDelegate.parent = this@Structable
-        }
+        return thisRef.register(this)
     }
 
-//    TODO: Make more specific extension method for resizablestructarray and freeze struct afterwards -> struct members not supported dynamic
-
-    fun <T: Struct> register(struct: T) {
-        object : GenericStructProperty<Structable, T>() {
+    fun <T: Struct> register(struct: T): GenericStructProperty<Structable, T> {
+        return object : GenericStructProperty<Structable, T>() {
             override val sizeInBytes by lazy {
                 struct.sizeInBytes
             }
             override val localByteOffset = this@Structable.getCurrentLocalByteOffset()
             override var currentRef = struct
         }.apply {
-            register(this)
-            struct.localByteOffset = this.localByteOffset
             struct.parent = this@Structable
+            register(this)
         }
     }
     fun register(structProperty: StructProperty) {
@@ -128,13 +115,18 @@ fun <T: Bufferable> T.copyFrom(target: T) {
 abstract class Struct : Structable {
     var parent: Structable? = null
         internal set(value) {
+            if(field != null) throw IllegalStateException("Cannot reassign struct to a parent!")
             field = value
+            localByteOffset = value?.getCurrentLocalByteOffset() ?: 0
         }
     override val memberStructs = mutableListOf<StructProperty>()
     override val sizeInBytes by lazy {
         memberStructs.sumBy { it.sizeInBytes }
     }
-    var localByteOffset: Long = parent?.getCurrentLocalByteOffset() ?: 0
+    var localByteOffset: Long = 0
+        internal set(value) {
+            field = value
+        }
 
     final override val baseByteOffset: Long
         inline get() = localByteOffset + (parent?.baseByteOffset ?: 0)
@@ -142,6 +134,16 @@ abstract class Struct : Structable {
     protected val ownBuffer by lazy { BufferUtils.createByteBuffer(sizeInBytes) }
     override val buffer by lazy { parent?.buffer ?: ownBuffer }
     fun usesOwnBuffer(): Boolean = parent == null
+}
+
+class SlidingWindow<T: Struct>(val underlying: T) {
+    var localByteOffset: Long
+        get() = underlying.localByteOffset
+        set(value) {
+            underlying.localByteOffset = value
+        }
+    val sizeInBytes: Int
+        get() = underlying.sizeInBytes
 }
 
 interface StructProperty {

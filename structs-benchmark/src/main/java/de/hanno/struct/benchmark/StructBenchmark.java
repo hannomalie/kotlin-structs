@@ -1,6 +1,6 @@
 package de.hanno.struct.benchmark;
 
-import de.hanno.struct.StaticStructArray;
+import de.hanno.struct.StructArray;
 import de.hanno.struct.benchmark.de.hanno.struct.benchmark.kotlin.IterateAndMutateStructArray;
 import de.hanno.struct.benchmark.de.hanno.struct.benchmark.kotlin.IterateAndMutateStructArrayIndexed;
 import de.hanno.struct.benchmark.de.hanno.struct.benchmark.kotlin.IterateStruct;
@@ -15,7 +15,7 @@ import org.openjdk.jmh.infra.Blackhole;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 
-import static de.hanno.struct.StructArrayKt.forEach;
+import static de.hanno.struct.ArrayKt.forEach;
 
 @Fork(3)
 @Measurement(iterations = 4)
@@ -28,7 +28,7 @@ public class StructBenchmark {
 
     private static ArrayList<JavaMutableVanilla> mutableVanillaArrayList = new ArrayList<>(size);
 
-    private static StaticStructArray<SimpleMutableStruct> resizableMutableStructArray = new StaticStructArray<>(size, SimpleMutableStruct::new);
+    private static StructArray<SimpleMutableStruct> resizableMutableStructArray = new StructArray<>(size, SimpleMutableStruct::new);
 
     static {
         for (int i = 0; i < size; i++) {

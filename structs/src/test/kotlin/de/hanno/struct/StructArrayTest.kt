@@ -5,6 +5,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertSame
 import org.junit.Test
 import org.lwjgl.BufferUtils
+import kotlin.Array
 
 class StructArrayTest {
 
@@ -38,8 +39,9 @@ class StructArrayTest {
 
     @Test
     fun testGetAtIndexResizable() {
-        val array = prepareAResizableArray()
-        array.resize(11)
+        val array = prepareAResizableArray().apply {
+            resize(11)
+        }
 
         for(i in 0..9) {
             val atIndex = array.getAtIndex(i)
@@ -52,7 +54,7 @@ class StructArrayTest {
     fun testArrayInStruct() {
         class ArrayHolderStruct : Struct() {
             var myInt by 0
-            var nestedArray by StaticStructArray(10) { MyStruct() }
+            var nestedArray by StructArray(10) { MyStruct() }
         }
 
         val holder = ArrayHolderStruct()
@@ -84,7 +86,7 @@ class StructArrayTest {
     @Test
     fun testStructArrayCopy() {
         val source = prepareAnArray()
-        val target = de.hanno.struct.StaticStructArray(10) { MyStruct() }
+        val target = de.hanno.struct.StructArray(10) { MyStruct() }
 
         source.copyTo(target)
 
@@ -124,28 +126,31 @@ class StructArrayTest {
 
     @Test
     fun testResize() {
-        val source = ResizableStructArray(10){ MyStruct() }
+        var source = StructArray(10){ MyStruct() }
         Assert.assertEquals(10, source.size)
 
-        var bufferBefore = source.buffer
-        source.resize(20)
+        val bufferBefore = source.buffer
+
+        source = source.resize(20)
         Assert.assertNotSame(source.buffer, bufferBefore)
         Assert.assertEquals(20, source.size)
 
-        bufferBefore = source.buffer
-        source.shrink(5)
+        source = source.shrink(5)
         Assert.assertNotSame(source.buffer, bufferBefore)
         Assert.assertEquals(5, source.size)
 
-        bufferBefore = source.buffer
-        source.enlarge(7)
+        source = source.enlarge(7)
         Assert.assertNotSame(source.buffer, bufferBefore)
         Assert.assertEquals(7, source.size)
+
+        source = source.resize(20)
+        Assert.assertNotSame(source.buffer, bufferBefore)
+        Assert.assertEquals(20, source.size)
     }
 
-    private fun prepareAnArray(): StaticStructArray<MyStruct> {
+    private fun prepareAnArray(): StructArray<MyStruct> {
 
-        val structArray = StaticStructArray(10) { MyStruct() }
+        val structArray = StructArray(10) { MyStruct() }
 
         structArray.forEachIndexed { index, current ->
             assertSame(current.buffer, structArray.buffer)
@@ -157,9 +162,9 @@ class StructArrayTest {
 
         return structArray
     }
-    private fun prepareAResizableArray(): ResizableStructArray<MyStruct> {
+    private fun prepareAResizableArray(): StructArray<MyStruct> {
 
-        val structArray = ResizableStructArray(10) { MyStruct() }
+        val structArray = StructArray(10) { MyStruct() }
 
         structArray.forEachIndexed { index, current ->
             assertSame(current.buffer, structArray.buffer)
@@ -172,7 +177,7 @@ class StructArrayTest {
         return structArray
     }
 
-    private fun checkResultArray(structArray: SlidingWindowStructArray<MyStruct>) {
+    private fun checkResultArray(structArray: SlidingWindowArray<MyStruct>) {
         structArray.forEachIndexed { index, current ->
             assertEquals((index * current.sizeInBytes).toLong(), current.baseByteOffset)
             assertEquals(index, current.myInt)
@@ -199,7 +204,7 @@ class StructArrayTest {
             var a by 0
             val aString = "aString"
         }
-        val array = StaticStructObjectArray(size = 10, factory = { StructObject() })
+        val array = StructObjectArray(size = 10, factory = { StructObject() })
         for(i in 0 until array.size) {
             array[i].a = i
         }
@@ -226,7 +231,7 @@ class StructArrayTest {
         }
 
         @JvmStatic fun main(args: Array<String>) {
-            val array = StaticStructArray(20000) { MyStruct() }
+            val array = StructArray(20000) { MyStruct() }
             while (true) {
                 array.forEach {
                     it.myInt++
