@@ -6,17 +6,20 @@ apply plugin: 'application'
 
 sourceCompatibility = 1.8
 
-mainClassName = 'org.openjdk.jmh.Main'
-
 dependencies {
     compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
     compile 'org.openjdk.jmh:jmh-core:1.21'
     compile 'org.openjdk.jmh:jmh-generator-annprocess:1.21'
+    compile 'org.spf4j:spf4j-jmh:8.5.15'
 
     compile project(':structs')
 
     testCompile group: 'junit', name: 'junit', version: '4.12'
 }
+
+mainClassName = 'de.hanno.struct.benchmark.StructBenchmark'
+//mainClassName = 'org.openjdk.jmh.Main'
+applicationDefaultJvmArgs = ['-XX:+UnlockCommercialFeatures']
 
 compileKotlin {
     kotlinOptions.jvmTarget = "1.8"
@@ -27,6 +30,7 @@ compileTestKotlin {
 
 jar {
     manifest {
-        attributes 'Main-Class': 'org.openjdk.jmh.Main'
+//        attributes 'Main-Class': 'org.openjdk.jmh.Main'
+        attributes 'Main-Class': 'de.hanno.struct.benchmark.StructBenchmark'
     }
 }

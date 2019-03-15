@@ -6,12 +6,12 @@ import de.hanno.struct.StructProperty
 import java.nio.ByteBuffer
 import kotlin.reflect.KProperty
 
-class SimpleStruct(parent: Struct? = null) : Struct(parent) {
+class SimpleStruct : Struct() {
     val a by 0
     val b by 0.0f
     val c by 0L
 }
-class SimpleMutableStruct(parent: Struct? = null): Struct(parent) {
+class SimpleMutableStruct : Struct() {
     var a by 0
     var b by 0.0f
     var c by 0L
@@ -51,7 +51,7 @@ class KotlinDelegatedPropertyUnsafeSimpleSlidingWindow(val buffer: ByteBuffer) {
     var y by UnsafeFloatProperty(4)
     var z by UnsafeFloatProperty(8)
 }
-class KotlinDelegatedPropertyUnsafeSlidingWindow(override val buffer: ByteBuffer): Struct(null) {
+class KotlinDelegatedPropertyUnsafeSlidingWindow(override val buffer: ByteBuffer): Struct() {
     var x by 0f
     var y by 0f
     var z by 0f

@@ -1,5 +1,6 @@
 package de.hanno.struct.benchmark;
 
+import de.hanno.struct.SlidingWindow;
 import de.hanno.struct.StructArray;
 import de.hanno.struct.benchmark.de.hanno.struct.benchmark.kotlin.IterateAndMutateStructArray;
 import de.hanno.struct.benchmark.de.hanno.struct.benchmark.kotlin.IterateAndMutateStructArrayIndexed;
@@ -11,15 +12,20 @@ import org.openjdk.jmh.annotations.Fork;
 import org.openjdk.jmh.annotations.Measurement;
 import org.openjdk.jmh.annotations.Warmup;
 import org.openjdk.jmh.infra.Blackhole;
+import org.openjdk.jmh.runner.Runner;
+import org.openjdk.jmh.runner.RunnerException;
+import org.openjdk.jmh.runner.options.Options;
+import org.openjdk.jmh.runner.options.OptionsBuilder;
+import org.spf4j.stackmonitor.JmhFlightRecorderProfiler;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 
 import static de.hanno.struct.ArrayKt.forEach;
 
-@Fork(3)
-@Measurement(iterations = 4)
-@Warmup(iterations = 4)
+@Fork(1)
+@Measurement(iterations = 2)
+@Warmup(iterations = 2)
 public class StructBenchmark {
 
     public static final int size = 5000;
@@ -53,6 +59,8 @@ public class StructBenchmark {
 
     private static ByteBuffer kotlinDelegatedPropertyUnsafeSlidingWindowBuffer = BufferUtils.createByteBuffer(12*size);
     private static KotlinDelegatedPropertyUnsafeSlidingWindow kotlinDelegatedPropertyUnsafeSlidingWindow = new KotlinDelegatedPropertyUnsafeSlidingWindow(kotlinDelegatedPropertyUnsafeSlidingWindowBuffer);
+    private static SlidingWindow<KotlinDelegatedPropertyUnsafeSlidingWindow> kotlinDelegatedPropertyUnsafeSlidingWindow_window = new SlidingWindow<>(kotlinDelegatedPropertyUnsafeSlidingWindow);
+
 
     static {
         simpleSlidingWindowBuffer.rewind();
@@ -140,7 +148,7 @@ public class StructBenchmark {
     @Benchmark
     public void iterateAndMutateKotlinDelegatedPropertyUnsafeSlidingWindowBuffer(Blackhole hole) {
         for(int i = 0; i <= kotlinDelegatedPropertyUnsafeSlidingWindowBuffer.capacity() - 12; i+=12) {
-            kotlinDelegatedPropertyUnsafeSlidingWindow.setLocalByteOffset(i);
+            kotlinDelegatedPropertyUnsafeSlidingWindow_window.setLocalByteOffset(i);
             kotlinDelegatedPropertyUnsafeSlidingWindow.setX(kotlinDelegatedPropertyUnsafeSlidingWindow.getX() + 1);
             kotlinDelegatedPropertyUnsafeSlidingWindow.setY(kotlinDelegatedPropertyUnsafeSlidingWindow.getY() + 2);
             kotlinDelegatedPropertyUnsafeSlidingWindow.setZ(kotlinDelegatedPropertyUnsafeSlidingWindow.getZ() + 3);
@@ -169,4 +177,12 @@ public class StructBenchmark {
         });
     }
 
+
+    public static void main(String[] args) throws RunnerException {
+        Options opt = new OptionsBuilder()
+                .include(".*")
+                .addProfiler(JmhFlightRecorderProfiler.class)
+                .build();
+        new Runner(opt).run();
+    }
 }

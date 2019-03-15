@@ -6,11 +6,12 @@ import de.hanno.struct.benchmark.SimpleMutableStruct
 import de.hanno.struct.benchmark.SimpleStruct
 import de.hanno.struct.benchmark.StructBenchmark
 import de.hanno.struct.benchmark.StructBenchmark.size
+import de.hanno.struct.forEach
 import org.openjdk.jmh.infra.Blackhole
 
 class IterateAndMutateStructArray {
     companion object {
-        @JvmStatic private val mutableStructArray = StructArray(StructBenchmark.size) { parent: Struct -> SimpleMutableStruct(parent) }
+        @JvmStatic private val mutableStructArray = StructArray(StructBenchmark.size) { SimpleMutableStruct() }
         @JvmStatic fun run(hole: Blackhole) {
             mutableStructArray.forEach(false) { struct: SimpleMutableStruct ->
                 struct.a = struct.a + 1
@@ -23,7 +24,7 @@ class IterateAndMutateStructArray {
 }
 class IterateAndMutateStructArrayIndexed {
     companion object {
-        @JvmStatic private val mutableStructArrayIndexIteration = StructArray(size) { parent: Struct -> SimpleMutableStruct(parent) }
+        @JvmStatic private val mutableStructArrayIndexIteration = StructArray(size) { SimpleMutableStruct() }
         @JvmStatic fun run(hole: Blackhole) {
             for (i in 0 until mutableStructArrayIndexIteration.size) {
                 val struct = mutableStructArrayIndexIteration.getAtIndex(i)
@@ -37,7 +38,7 @@ class IterateAndMutateStructArrayIndexed {
 }
 class IterateStruct {
     companion object {
-        @JvmStatic private val structArray = StructArray(size) { parent: Struct -> SimpleStruct(parent) }
+        @JvmStatic private val structArray = StructArray(size) { SimpleStruct() }
         @JvmStatic fun run(hole: Blackhole) {
             structArray.forEach(false) { struct: SimpleStruct ->
                 hole.consume(struct.a)
