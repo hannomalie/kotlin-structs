@@ -177,7 +177,7 @@ class StructArrayTest {
         return structArray
     }
 
-    private fun checkResultArray(structArray: SlidingWindowArray<MyStruct>) {
+    private fun checkResultArray(structArray: StructArray<MyStruct>) {
         structArray.forEachIndexed { index, current ->
             assertEquals((index * current.sizeInBytes).toLong(), current.baseByteOffset)
             assertEquals(index, current.myInt)

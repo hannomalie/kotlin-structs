@@ -2,14 +2,17 @@ package de.hanno.struct.benchmark;
 
 import de.hanno.struct.SlidingWindow;
 import de.hanno.struct.StructArray;
-import de.hanno.struct.benchmark.de.hanno.struct.benchmark.kotlin.IterateAndMutateStructArray;
-import de.hanno.struct.benchmark.de.hanno.struct.benchmark.kotlin.IterateAndMutateStructArrayIndexed;
-import de.hanno.struct.benchmark.de.hanno.struct.benchmark.kotlin.IterateStruct;
+import de.hanno.struct.benchmark.de.hanno.struct.benchmark.kotlin.IterateAndMutateStructArrayIndexedState;
+import de.hanno.struct.benchmark.de.hanno.struct.benchmark.kotlin.IterateAndMutateStructArrayState;
+import de.hanno.struct.benchmark.de.hanno.struct.benchmark.kotlin.IterateStructState;
 import kotlin.Unit;
 import org.lwjgl.BufferUtils;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Fork;
 import org.openjdk.jmh.annotations.Measurement;
+import org.openjdk.jmh.annotations.Scope;
+import org.openjdk.jmh.annotations.Setup;
+import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.Warmup;
 import org.openjdk.jmh.infra.Blackhole;
 import org.openjdk.jmh.runner.Runner;
@@ -22,62 +25,82 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 
 import static de.hanno.struct.ArrayKt.forEach;
+import static de.hanno.struct.benchmark.de.hanno.struct.benchmark.kotlin.KotlinBenchmarksKt.*;
 
 @Fork(1)
-@Measurement(iterations = 2)
-@Warmup(iterations = 2)
+@Measurement(iterations = 1)
+@Warmup(iterations = 1)
 public class StructBenchmark {
 
-    public static final int size = 5000;
+    public static final int LIST_SIZE = 5000;
 
-    private static ArrayList<JavaVanilla> vanillaArrayList = new ArrayList<>(size);
-
-    private static ArrayList<JavaMutableVanilla> mutableVanillaArrayList = new ArrayList<>(size);
-
-    private static StructArray<SimpleMutableStruct> resizableMutableStructArray = new StructArray<>(size, SimpleMutableStruct::new);
-
-    static {
-        for (int i = 0; i < size; i++) {
-            vanillaArrayList.add(new JavaVanilla(3, 0.5f, 234234L));
-            mutableVanillaArrayList.add(new JavaMutableVanilla(3, 0.5f, 234234L));
+    @State(Scope.Thread)
+    public static class VanillaArrayListState {
+        public final ArrayList<JavaVanilla> list = new ArrayList<>(LIST_SIZE);
+        @Setup
+        public void setUp() {
+            for (int i = 0; i < LIST_SIZE; i++) {
+                list.add(new JavaVanilla(3, 0.5f, 234234L));
+            }
         }
-
     }
-    private static ByteBuffer directBuffer = BufferUtils.createByteBuffer(12*size);
 
-    private static ByteBuffer simpleSlidingWindowBuffer = BufferUtils.createByteBuffer(12*size);
-    private static SimpleSlidingWindow simpleSlidingWindow = new SimpleSlidingWindow(simpleSlidingWindowBuffer);
-
-    private static ByteBuffer kotlinSimpleSlidingWindowBuffer = BufferUtils.createByteBuffer(12*size);
-    private static KotlinSimpleSlidingWindow kotlinSimpleSlidingWindow = new KotlinSimpleSlidingWindow(kotlinSimpleSlidingWindowBuffer);
-
-    private static ByteBuffer kotlinDelegatedPropertySimpleSlidingWindowBuffer = BufferUtils.createByteBuffer(12*size);
-    private static KotlinDelegatedPropertySimpleSlidingWindow kotlinDelegatedPropertySimpleSlidingWindow = new KotlinDelegatedPropertySimpleSlidingWindow(kotlinDelegatedPropertySimpleSlidingWindowBuffer);
-
-    private static ByteBuffer kotlinDelegatedPropertyUnsafeSimpleSlidingWindowBuffer = BufferUtils.createByteBuffer(12*size);
-    private static KotlinDelegatedPropertyUnsafeSimpleSlidingWindow kotlinDelegatedPropertyUnsafeSimpleSlidingWindow = new KotlinDelegatedPropertyUnsafeSimpleSlidingWindow(kotlinDelegatedPropertyUnsafeSimpleSlidingWindowBuffer);
-
-    private static ByteBuffer kotlinDelegatedPropertyUnsafeSlidingWindowBuffer = BufferUtils.createByteBuffer(12*size);
-    private static KotlinDelegatedPropertyUnsafeSlidingWindow kotlinDelegatedPropertyUnsafeSlidingWindow = new KotlinDelegatedPropertyUnsafeSlidingWindow(kotlinDelegatedPropertyUnsafeSlidingWindowBuffer);
-    private static SlidingWindow<KotlinDelegatedPropertyUnsafeSlidingWindow> kotlinDelegatedPropertyUnsafeSlidingWindow_window = new SlidingWindow<>(kotlinDelegatedPropertyUnsafeSlidingWindow);
-
-
-    static {
-        simpleSlidingWindowBuffer.rewind();
-        kotlinSimpleSlidingWindowBuffer.rewind();
-        kotlinDelegatedPropertySimpleSlidingWindowBuffer.rewind();
-        kotlinDelegatedPropertyUnsafeSimpleSlidingWindowBuffer.rewind();
-        kotlinDelegatedPropertyUnsafeSlidingWindowBuffer.rewind();
+    @State(Scope.Thread)
+    public static class MutableVanillaArrayListState {
+        public final ArrayList<JavaMutableVanilla> list = new ArrayList<>(LIST_SIZE);
+        @Setup
+        public void setUp() {
+            for (int i = 0; i < LIST_SIZE; i++) {
+                list.add(new JavaMutableVanilla(3, 0.5f, 234234L));
+            }
+        }
     }
+
+    @State(Scope.Thread)
+    public static class ResizableMutableStructArrayState {
+        public final StructArray<SimpleMutableStruct> array = new StructArray<>(LIST_SIZE, SimpleMutableStruct::new);
+    }
+
+    @State(Scope.Thread)
+    public static class DirectBufferState {
+        public final ByteBuffer directBuffer = BufferUtils.createByteBuffer(12* LIST_SIZE);
+    }
+
+    @State(Scope.Thread)
+    public static class SimpleSlidingWindowBufferState {
+        public final ByteBuffer simpleSlidingWindowBuffer = BufferUtils.createByteBuffer(12* LIST_SIZE);
+        public final SimpleSlidingWindow simpleSlidingWindow = new SimpleSlidingWindow(simpleSlidingWindowBuffer);
+    }
+
+    @State(Scope.Thread)
+    public static class KotlinSimpleSlidingWindowBufferState {
+        public final ByteBuffer buffer = BufferUtils.createByteBuffer(12* LIST_SIZE);
+        public final KotlinSimpleSlidingWindow slidingWindow = new KotlinSimpleSlidingWindow(buffer);
+    }
+
+    @State(Scope.Thread)
+    public static class KotlinDelegatedPropertySimpleSlidingWindowBufferState {
+        public final ByteBuffer buffer = BufferUtils.createByteBuffer(12* LIST_SIZE);
+        public final KotlinDelegatedPropertySimpleSlidingWindow slidingWindow = new KotlinDelegatedPropertySimpleSlidingWindow(buffer);
+    }
+
+    @State(Scope.Thread)
+    public static class KotlinDelegatedPropertyUnsafeSimpleSlidingWindowBufferState {
+        public final ByteBuffer buffer = BufferUtils.createByteBuffer(12* LIST_SIZE);
+        public final KotlinDelegatedPropertyUnsafeSimpleSlidingWindow slidingWindow = new KotlinDelegatedPropertyUnsafeSimpleSlidingWindow(buffer);
+    }
+
+    @State(Scope.Thread)
+    public static class KotlinDelegatedPropertyUnsafeSlidingWindowBufferState {
+        public final ByteBuffer buffer = BufferUtils.createByteBuffer(12* LIST_SIZE);
+        public final KotlinDelegatedPropertyUnsafeSlidingWindow windowStruct = new KotlinDelegatedPropertyUnsafeSlidingWindow(buffer);
+        public final SlidingWindow<KotlinDelegatedPropertyUnsafeSlidingWindow> window = new SlidingWindow<>(windowStruct);
+    }
+
 
     @Benchmark
-    public void iterateStruct(Blackhole hole) {
-        IterateStruct.Companion.run(hole);
-    }
-
-    @Benchmark
-    public void iterateVanilla(Blackhole hole) {
-        vanillaArrayList.forEach((it) -> {
+    public void iterateVanilla(Blackhole hole, VanillaArrayListState state) {
+        state.list.forEach((it) -> {
             hole.consume(it.getA());
             hole.consume(it.getB());
             hole.consume(it.getC());
@@ -85,80 +108,70 @@ public class StructBenchmark {
     }
 
     @Benchmark
-    public void iterateAndMutateStructArray(Blackhole hole) {
-        IterateAndMutateStructArray.Companion.run(hole);
-    }
-
-    @Benchmark
-    public void iterateAndMutateStructArrayIndexed(Blackhole hole) {
-        IterateAndMutateStructArrayIndexed.Companion.run(hole);
-    }
-
-    @Benchmark
-    public void iterateAndMutateBufferDirect(Blackhole hole) {
-        for(int i = 0; i <= directBuffer.capacity() - 12; i+=12) {
-            directBuffer.putFloat(i, directBuffer.getFloat(i));
-            directBuffer.putFloat(i +4, directBuffer.getFloat(i +4));
-            directBuffer.putFloat(i +8, directBuffer.getFloat(i +8));
+    public void iterateAndMutateBufferDirect(Blackhole hole, DirectBufferState state) {
+        for(int i = 0; i <= state.directBuffer.capacity() - 12; i+=12) {
+            state.directBuffer.putFloat(i, state.directBuffer.getFloat(i));
+            state.directBuffer.putFloat(i +4, state.directBuffer.getFloat(i +4));
+            state.directBuffer.putFloat(i +8, state.directBuffer.getFloat(i +8));
         }
     }
     @Benchmark
-    public void iterateAndMutateSimpleSlidingWindowBuffer(Blackhole hole) {
-        for(int i = 0; i <= simpleSlidingWindowBuffer.capacity() - 12; i+=12) {
-            simpleSlidingWindow.baseByteOffset = i;
-            simpleSlidingWindow.setX(simpleSlidingWindow.getX() + 1);
-            simpleSlidingWindow.setY(simpleSlidingWindow.getY() + 2);
-            simpleSlidingWindow.setZ(simpleSlidingWindow.getZ() + 3);
-            hole.consume(simpleSlidingWindow);
+    public void iterateAndMutateSimpleSlidingWindowBuffer(Blackhole hole, SimpleSlidingWindowBufferState state) {
+        for(int i = 0; i <= state.simpleSlidingWindowBuffer.capacity() - 12; i+=12) {
+            state.simpleSlidingWindow.baseByteOffset = i;
+            state.simpleSlidingWindow.setX(state.simpleSlidingWindow.getX() + 1);
+            state.simpleSlidingWindow.setY(state.simpleSlidingWindow.getY() + 2);
+            state.simpleSlidingWindow.setZ(state.simpleSlidingWindow.getZ() + 3);
+            hole.consume(state.simpleSlidingWindow);
         }
     }
 
     @Benchmark
-    public void iterateAndMutateKotlinSimpleSlidingWindowBuffer(Blackhole hole) {
-        for(int i = 0; i <= kotlinSimpleSlidingWindowBuffer.capacity() - 12; i+=12) {
-            kotlinSimpleSlidingWindow.setBaseByteOffset(i);
-            kotlinSimpleSlidingWindow.setX(kotlinSimpleSlidingWindow.getX() + 1);
-            kotlinSimpleSlidingWindow.setY(kotlinSimpleSlidingWindow.getY() + 2);
-            kotlinSimpleSlidingWindow.setZ(kotlinSimpleSlidingWindow.getZ() + 3);
-            hole.consume(kotlinSimpleSlidingWindow);
+    public void iterateAndMutateKotlinSimpleSlidingWindowBuffer(Blackhole hole, KotlinSimpleSlidingWindowBufferState state) {
+        for(int i = 0; i <= state.buffer.capacity() - 12; i+=12) {
+            state.slidingWindow.setBaseByteOffset(i);
+            state.slidingWindow.setX(state.slidingWindow.getX() + 1);
+            state.slidingWindow.setY(state.slidingWindow.getY() + 2);
+            state.slidingWindow.setZ(state.slidingWindow.getZ() + 3);
+            hole.consume(state.slidingWindow);
         }
     }
 
     @Benchmark
-    public void iterateAndMutateKotlinDelegatedPropertySlidingWindowBuffer(Blackhole hole) {
-        for(int i = 0; i <= kotlinDelegatedPropertySimpleSlidingWindowBuffer.capacity() - 12; i+=12) {
-            kotlinDelegatedPropertySimpleSlidingWindow.setBaseByteOffset(i);
-            kotlinDelegatedPropertySimpleSlidingWindow.setX(kotlinDelegatedPropertySimpleSlidingWindow.getX() + 1);
-            kotlinDelegatedPropertySimpleSlidingWindow.setY(kotlinDelegatedPropertySimpleSlidingWindow.getY() + 2);
-            kotlinDelegatedPropertySimpleSlidingWindow.setZ(kotlinDelegatedPropertySimpleSlidingWindow.getZ() + 3);
-            hole.consume(kotlinDelegatedPropertySimpleSlidingWindow);
+    public void iterateAndMutateKotlinDelegatedPropertySlidingWindowBuffer(Blackhole hole, KotlinDelegatedPropertySimpleSlidingWindowBufferState state) {
+        for(int i = 0; i <= state.buffer.capacity() - 12; i+=12) {
+            state.slidingWindow.setBaseByteOffset(i);
+            state.slidingWindow.setX(state.slidingWindow.getX() + 1);
+            state.slidingWindow.setY(state.slidingWindow.getY() + 2);
+            state.slidingWindow.setZ(state.slidingWindow.getZ() + 3);
+            hole.consume(state.slidingWindow);
         }
     }
     @Benchmark
-    public void iterateAndMutateKotlinDelegatedPropertyUnsafeSimpleSlidingWindowBuffer(Blackhole hole) {
-        for(int i = 0; i <= kotlinDelegatedPropertyUnsafeSimpleSlidingWindowBuffer.capacity() - 12; i+=12) {
-            kotlinDelegatedPropertyUnsafeSimpleSlidingWindow.setBaseByteOffset(i);
-            kotlinDelegatedPropertyUnsafeSimpleSlidingWindow.setX(kotlinDelegatedPropertyUnsafeSimpleSlidingWindow.getX() + 1);
-            kotlinDelegatedPropertyUnsafeSimpleSlidingWindow.setY(kotlinDelegatedPropertyUnsafeSimpleSlidingWindow.getY() + 2);
-            kotlinDelegatedPropertyUnsafeSimpleSlidingWindow.setZ(kotlinDelegatedPropertyUnsafeSimpleSlidingWindow.getZ() + 3);
-            hole.consume(kotlinDelegatedPropertyUnsafeSimpleSlidingWindow);
-        }
-    }
-
-    @Benchmark
-    public void iterateAndMutateKotlinDelegatedPropertyUnsafeSlidingWindowBuffer(Blackhole hole) {
-        for(int i = 0; i <= kotlinDelegatedPropertyUnsafeSlidingWindowBuffer.capacity() - 12; i+=12) {
-            kotlinDelegatedPropertyUnsafeSlidingWindow_window.setLocalByteOffset(i);
-            kotlinDelegatedPropertyUnsafeSlidingWindow.setX(kotlinDelegatedPropertyUnsafeSlidingWindow.getX() + 1);
-            kotlinDelegatedPropertyUnsafeSlidingWindow.setY(kotlinDelegatedPropertyUnsafeSlidingWindow.getY() + 2);
-            kotlinDelegatedPropertyUnsafeSlidingWindow.setZ(kotlinDelegatedPropertyUnsafeSlidingWindow.getZ() + 3);
-            hole.consume(kotlinDelegatedPropertyUnsafeSlidingWindow);
+    public void iterateAndMutateKotlinDelegatedPropertyUnsafeSimpleSlidingWindowBuffer(Blackhole hole, KotlinDelegatedPropertyUnsafeSimpleSlidingWindowBufferState state) {
+        for(int i = 0; i <= state.buffer.capacity() - 12; i+=12) {
+            state.slidingWindow.setBaseByteOffset(i);
+            state.slidingWindow.setX(state.slidingWindow.getX() + 1);
+            state.slidingWindow.setY(state.slidingWindow.getY() + 2);
+            state.slidingWindow.setZ(state.slidingWindow.getZ() + 3);
+            hole.consume(state.slidingWindow);
         }
     }
 
     @Benchmark
-    public void iterateAndMutateResizableStruct(Blackhole hole) {
-        forEach(resizableMutableStructArray, false, (SimpleMutableStruct struct) -> {
+    public void iterateAndMutateKotlinDelegatedPropertyUnsafeSlidingWindowBuffer(Blackhole hole, KotlinDelegatedPropertyUnsafeSlidingWindowBufferState state) {
+        for(int i = 0; i <= state.buffer.capacity() - 12; i+=12) {
+            state.window.setLocalByteOffset(i);
+            state.windowStruct.setX(state.windowStruct.getX() + 1);
+            state.windowStruct.setY(state.windowStruct.getY() + 2);
+            state.windowStruct.setZ(state.windowStruct.getZ() + 3);
+            hole.consume(state.windowStruct);
+        }
+    }
+
+    @Benchmark
+    public void iterateAndMutateResizableStruct(Blackhole hole, ResizableMutableStructArrayState state) {
+        forEach(state.array, false, (SimpleMutableStruct struct) -> {
             struct.setA(struct.getA() + 1);
             struct.setB(struct.getB() + 2);
             struct.setC(struct.getC() + 3);
@@ -168,13 +181,29 @@ public class StructBenchmark {
     }
 
     @Benchmark
-    public void iterateAndMutateVanilla(Blackhole hole) {
-        mutableVanillaArrayList.forEach((JavaMutableVanilla nonStruct) -> {
+    public void iterateAndMutateVanilla(Blackhole hole, MutableVanillaArrayListState state) {
+        state.list.forEach((JavaMutableVanilla nonStruct) -> {
             nonStruct.setA(nonStruct.getA() + 1);
             nonStruct.setB(nonStruct.getB() + 2);
             nonStruct.setC(nonStruct.getC() + 3);
             hole.consume(nonStruct);
         });
+    }
+
+
+    // Kotlin
+
+    @Benchmark
+    public void kotlin_iterateStruct(Blackhole hole, IterateStructState state) {
+        iterateStruct(hole, state);
+    }
+    @Benchmark
+    public void kotlin_iterateAndMutateStructArrayIndexed(Blackhole hole, IterateAndMutateStructArrayIndexedState state) {
+        iterateAndMutateStructArrayIndexed(hole, state);
+    }
+    @Benchmark
+    public void kotlin_iterateAndMutateStructArray(Blackhole hole, IterateAndMutateStructArrayState state) {
+        iterateAndMutateStructArray(hole, state);
     }
 
 

@@ -1,6 +1,7 @@
 
 plugins {
     id 'org.jetbrains.kotlin.jvm'
+    id "me.champeau.gradle.jmh" version "0.4.8"
 }
 apply plugin: 'application'
 
@@ -18,11 +19,11 @@ dependencies {
 }
 
 mainClassName = 'de.hanno.struct.benchmark.StructBenchmark'
-//mainClassName = 'org.openjdk.jmh.Main'
-applicationDefaultJvmArgs = ['-XX:+UnlockCommercialFeatures']
+applicationDefaultJvmArgs = ['-XX:+UnlockCommercialFeatures', '-XX:+UnlockDiagnosticVMOptions', '-XX:+TraceClassLoading', '-XX:+LogCompilation', '-XX:+PrintAssembly']
 
 compileKotlin {
     kotlinOptions.jvmTarget = "1.8"
+    kotlinOptions.freeCompilerArgs = ["-Xno-call-assertions", "-Xno-param-assertions"]
 }
 compileTestKotlin {
     kotlinOptions.jvmTarget = "1.8"
@@ -33,4 +34,10 @@ jar {
 //        attributes 'Main-Class': 'org.openjdk.jmh.Main'
         attributes 'Main-Class': 'de.hanno.struct.benchmark.StructBenchmark'
     }
+}
+
+jmh {
+    humanOutputFile = project.file("${project.buildDir}/reports/jmh/human.txt")
+    resultsFile = project.file("${project.buildDir}/reports/jmh/results.txt")
+    profilers = ["comp", "perf"]
 }

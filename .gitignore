@@ -128,3 +128,6 @@ atlassian-ide-plugin.xml
 
 *.kotlin_module
 */out/
+
+# Java Flight Recorder files from benchmark
+*.jfr
