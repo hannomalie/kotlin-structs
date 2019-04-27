@@ -46,11 +46,11 @@ class StructObjectArray<T: Struct>(override val size: Int, val factory: (Struct)
     override operator fun get(index: Int) = getAtIndex(index)
 }
 
-fun <T: Struct> StructArray<T>.shrinkToBytes(sizeInBytes: Int, copyContent: Boolean = true) = shrink(sizeInBytes/slidingWindow.sizeInBytes, copyContent)
+fun <T: Struct> StructArray<T>.shrinkToBytes(sizeInBytes: Int, copyContent: Boolean = true) = shrink(sizeInBytes, copyContent)
 
 
 fun <T: Struct> StructArray<T>.shrink(sizeInBytes: Int, copyContent: Boolean = true) = if(buffer.capacity() > sizeInBytes) {
-    StructArray(sizeInBytes, factory).apply {
+    StructArray(sizeInBytes/slidingWindow.sizeInBytes, factory).apply {
         if(copyContent) {
             val self: Array<T> = this
             copyTo(self)
@@ -59,7 +59,7 @@ fun <T: Struct> StructArray<T>.shrink(sizeInBytes: Int, copyContent: Boolean = t
 } else this
 
 fun <T: Struct> StructArray<T>.resize(sizeInBytes: Int, copyContent: Boolean = true) = if(buffer.capacity() != sizeInBytes) {
-    StructArray(sizeInBytes, factory).apply {
+    StructArray(sizeInBytes/slidingWindow.sizeInBytes, factory).apply {
         if(copyContent) {
             val self: Array<T> = this
             copyTo(self)
