@@ -2,7 +2,7 @@ package de.hanno.struct
 
 import java.nio.ByteBuffer
 
-interface Array<T>: Bufferable {
+interface Array<T> {
     val size: Int
     val indices: IntRange
     val buffer: ByteBuffer
@@ -46,10 +46,10 @@ class StructObjectArray<T: Struct>(override val size: Int, val factory: (Struct)
     override operator fun get(index: Int) = getAtIndex(index)
 }
 
-fun <T: Struct> StructArray<T>.shrinkToBytes(sizeInBytes: Int, copyContent: Boolean = true) = shrink(sizeInBytes, copyContent)
+fun <T: Struct> StructArray<T>.shrink(size: Int, copyContent: Boolean = true) = shrinkToBytes(size * slidingWindow.sizeInBytes, copyContent)
 
 
-fun <T: Struct> StructArray<T>.shrink(sizeInBytes: Int, copyContent: Boolean = true) = if(buffer.capacity() > sizeInBytes) {
+fun <T: Struct> StructArray<T>.shrinkToBytes(sizeInBytes: Int, copyContent: Boolean = true) = if(buffer.capacity() > sizeInBytes) {
     StructArray(sizeInBytes/slidingWindow.sizeInBytes, factory).apply {
         if(copyContent) {
             val self: Array<T> = this
@@ -58,7 +58,8 @@ fun <T: Struct> StructArray<T>.shrink(sizeInBytes: Int, copyContent: Boolean = t
     }
 } else this
 
-fun <T: Struct> StructArray<T>.resize(sizeInBytes: Int, copyContent: Boolean = true) = if(buffer.capacity() != sizeInBytes) {
+fun <T: Struct> StructArray<T>.resize(size: Int, copyContent: Boolean = true) = resizeToBytes(size * slidingWindow.sizeInBytes, copyContent)
+fun <T: Struct> StructArray<T>.resizeToBytes(sizeInBytes: Int, copyContent: Boolean = true) = if(buffer.capacity() != sizeInBytes) {
     StructArray(sizeInBytes/slidingWindow.sizeInBytes, factory).apply {
         if(copyContent) {
             val self: Array<T> = this

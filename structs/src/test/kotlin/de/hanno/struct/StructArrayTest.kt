@@ -88,7 +88,7 @@ class StructArrayTest {
         val source = prepareAnArray()
         val target = de.hanno.struct.StructArray(10) { MyStruct() }
 
-        source.copyTo(target)
+        source.copyTo(target.buffer)
 
         checkResultArray(target)
     }

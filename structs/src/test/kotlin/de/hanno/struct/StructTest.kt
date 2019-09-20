@@ -24,7 +24,8 @@ class StructTest {
     @Test
     fun testSimpleStructInitialized() {
         class MyStruct: Struct() {
-            override val buffer = BufferUtils.createByteBuffer(8)
+            override var provideBuffer = { _buffer }
+            val _buffer = BufferUtils.createByteBuffer(8)
             val myInt by 2
             var myMutableFloat by 4.0f
         }
@@ -39,7 +40,8 @@ class StructTest {
             var myMutableInt by 4
         }
         class MyStruct: Struct() {
-            override val buffer = BufferUtils.createByteBuffer(8)
+            override var provideBuffer = { _buffer }
+            val _buffer = BufferUtils.createByteBuffer(8)
             val nestedStruct by NestedStruct()
             var myMutableFloat by 4.0f
         }

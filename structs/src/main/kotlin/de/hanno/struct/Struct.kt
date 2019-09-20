@@ -6,12 +6,6 @@ import org.lwjgl.BufferUtils
 import java.nio.ByteBuffer
 import kotlin.reflect.KProperty
 
-interface Sized {
-}
-
-interface Bufferable: Sized {
-}
-
 @JvmOverloads fun <T: Struct> T.copyTo(target: T, rewindBuffersBefore: Boolean = true) {
     if(rewindBuffersBefore) {
         buffer.rewind()
@@ -33,15 +27,15 @@ fun <T: Struct> T.copyFrom(target: T) {
     target.copyTo(this)
 }
 
-abstract class Struct : Bufferable {
+abstract class Struct {
     var parent: Struct? = null
         internal set(value) {
             if(field != null) throw IllegalStateException("Cannot reassign struct to a parent!")
             field = value
             localByteOffset = value?.getCurrentLocalByteOffset() ?: 0
-            parentBaseByteOffset = value?.baseByteOffset ?: 0
         }
-    private var parentBaseByteOffset = 0L
+    private val parentBaseByteOffset
+            get() = parent?.baseByteOffset ?: 0
     val memberStructs = mutableListOf<StructProperty>()
     open val sizeInBytes by lazy {
         memberStructs.sumBy { it.sizeInBytes }
@@ -55,7 +49,18 @@ abstract class Struct : Bufferable {
         get() = localByteOffset + parentBaseByteOffset
 
     open val ownBuffer by lazy { BufferUtils.createByteBuffer(sizeInBytes) }
-    val buffer: ByteBuffer by lazy { parent?.buffer ?: ownBuffer }
+    private var bufferCreated = false
+    private lateinit var evaluatedBuffer: ByteBuffer
+    open var provideBuffer: () -> ByteBuffer = {
+        if(!bufferCreated) {
+            evaluatedBuffer = parent?.buffer ?: ownBuffer
+            bufferCreated = true
+        }
+        evaluatedBuffer
+    }
+
+    val buffer: ByteBuffer
+        get() = provideBuffer()
 
 
     val <T: Struct> T.LongAsDouble: Struct.LongAsDoubleHelper<T>
@@ -139,6 +144,12 @@ class SlidingWindow<T: Struct>(val underlying: T) {
             underlying.localByteOffset = value
         }
     val sizeInBytes = underlying.sizeInBytes
+
+    var parent: Struct?
+        get() = underlying.parent
+        set(value) {
+            underlying.parent = value
+        }
 }
 
 interface StructProperty {
