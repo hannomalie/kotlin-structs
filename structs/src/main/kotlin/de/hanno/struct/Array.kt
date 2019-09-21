@@ -107,7 +107,7 @@ fun <T: Struct> StructArray<T>.enlargeToBytes(sizeInBytes: Int, copyContent: Boo
     }
 }
 
-@JvmOverloads fun ByteBuffer.copyTo(target: ByteBuffer, rewindBuffers: Boolean = true, targetOffset: Int = 0) {
+@JvmOverloads fun ByteBuffer.copyTo(target: ByteBuffer, rewindBuffers: Boolean = false, targetOffset: Int = 0) {
     val positionBefore = position()
     val targetPositionBefore = target.position()
     if(rewindBuffers) {

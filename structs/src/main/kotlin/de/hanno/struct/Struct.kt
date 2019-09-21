@@ -6,22 +6,16 @@ import org.lwjgl.BufferUtils
 import java.nio.ByteBuffer
 import kotlin.reflect.KProperty
 
-@JvmOverloads fun <T: Struct> T.copyTo(target: T, rewindBuffersBefore: Boolean = true) {
-    if(rewindBuffersBefore) {
-        buffer.rewind()
-        target.buffer.rewind()
-    }
+fun <T: Struct> T.copyTo(target: T) {
+    val oldTargetBufferPosition = target.buffer.position()
+    val oldSourceBufferPosition = buffer.position()
+
+    target.buffer.position(target.baseByteOffset.toInt() + target.localByteOffset.toInt())
+    buffer.position(baseByteOffset.toInt() + localByteOffset.toInt())
+
     target.buffer.put(buffer)
-}
-fun <T: Struct, S: Struct> T.copyToOther(target: S) {
-    if(target.sizeInBytes > sizeInBytes) {
-        target.buffer.put(buffer)
-    } else {
-        val tempArray = ByteArray(sizeInBytes)
-        this.buffer.rewind()
-        this.buffer.get(tempArray, 0, sizeInBytes)
-        target.buffer.put(tempArray, 0, sizeInBytes)
-    }
+    target.buffer.position(oldTargetBufferPosition)
+    buffer.position(oldSourceBufferPosition)
 }
 fun <T: Struct> T.copyFrom(target: T) {
     target.copyTo(this)
