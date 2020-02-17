@@ -10,8 +10,8 @@ fun <T: Struct> T.copyTo(target: T) {
     val oldTargetBufferPosition = target.buffer.position()
     val oldSourceBufferPosition = buffer.position()
 
-    target.buffer.position(target.baseByteOffset.toInt() + target.localByteOffset.toInt())
-    buffer.position(baseByteOffset.toInt() + localByteOffset.toInt())
+    target.buffer.position(target.baseByteOffset.toInt())
+    buffer.position(baseByteOffset.toInt())
 
     target.buffer.put(buffer)
     target.buffer.position(oldTargetBufferPosition)
@@ -43,14 +43,8 @@ abstract class Struct {
         get() = localByteOffset + parentBaseByteOffset
 
     open val ownBuffer by lazy { BufferUtils.createByteBuffer(sizeInBytes) }
-    private var bufferCreated = false
-    private lateinit var evaluatedBuffer: ByteBuffer
     open var provideBuffer: () -> ByteBuffer = {
-        if(!bufferCreated) {
-            evaluatedBuffer = parent?.buffer ?: ownBuffer
-            bufferCreated = true
-        }
-        evaluatedBuffer
+        parent?.buffer ?: ownBuffer
     }
 
     val buffer: ByteBuffer

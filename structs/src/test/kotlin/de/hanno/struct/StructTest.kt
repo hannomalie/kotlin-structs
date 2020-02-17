@@ -22,32 +22,20 @@ class StructTest {
     }
 
     @Test
-    fun testSimpleStructInitialized() {
-        class MyStruct: Struct() {
-            override var provideBuffer = { _buffer }
-            val _buffer = BufferUtils.createByteBuffer(8)
-            val myInt by 2
-            var myMutableFloat by 4.0f
-        }
-        val myStruct = MyStruct()
-        assertEquals(2, myStruct.myInt)
-        assertEquals(4.0f, myStruct.myMutableFloat)
-    }
-
-    @Test
     fun testNestedStructInitialized() {
         class NestedStruct : Struct() {
-            var myMutableInt by 4
+            var myMutableInt by 0
         }
         class MyStruct: Struct() {
             override var provideBuffer = { _buffer }
             val _buffer = BufferUtils.createByteBuffer(8)
             val nestedStruct by NestedStruct()
-            var myMutableFloat by 4.0f
+            var myMutableFloat by 0.0f
         }
         val myStruct = MyStruct()
+        myStruct.myMutableFloat = 4.0f
         assertEquals(myStruct, myStruct.nestedStruct.parent)
-        assertEquals(4, myStruct.nestedStruct.myMutableInt)
+        assertEquals(0, myStruct.nestedStruct.myMutableInt)
         myStruct.nestedStruct.myMutableInt = 99
         assertEquals(99, myStruct.nestedStruct.myMutableInt)
         assertEquals(4.0f, myStruct.myMutableFloat)

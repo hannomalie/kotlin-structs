@@ -118,7 +118,7 @@ fun <T: Struct> StructArray<T>.enlargeToBytes(sizeInBytes: Int, copyContent: Boo
 
     if(targetBufferSmallerThanNeeded) {
         val array = toArray(true, target.capacity())
-        target.put(array, targetOffset, array.size)
+        target.put(array, targetOffset, array.size-1)
         target.rewind()
     } else {
         if(positionBefore != targetOffset) { target.position(targetOffset) }
