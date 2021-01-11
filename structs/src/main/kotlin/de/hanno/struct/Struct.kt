@@ -1,3 +1,5 @@
+@file:Suppress("NOTHING_TO_INLINE")
+
 package de.hanno.struct
 
 import de.hanno.memutil.BufferAccess
@@ -6,7 +8,7 @@ import org.lwjgl.BufferUtils
 import java.nio.ByteBuffer
 import kotlin.reflect.KProperty
 
-fun <T: Struct> T.copyTo(target: T) {
+fun <T : Struct> T.copyTo(target: T) {
     val oldTargetBufferPosition = target.buffer.position()
     val oldSourceBufferPosition = buffer.position()
 
@@ -17,93 +19,90 @@ fun <T: Struct> T.copyTo(target: T) {
     target.buffer.position(oldTargetBufferPosition)
     buffer.position(oldSourceBufferPosition)
 }
-fun <T: Struct> T.copyFrom(target: T) {
+
+fun <T : Struct> T.copyFrom(target: T) {
     target.copyTo(this)
 }
 
 abstract class Struct {
     var parent: Struct? = null
         internal set(value) {
-            if(field != null) throw IllegalStateException("Cannot reassign struct to a parent!")
+            if (field != null) throw IllegalStateException("Cannot reassign struct to a parent!")
             field = value
             localByteOffset = value?.getCurrentLocalByteOffset() ?: 0
         }
     private val parentBaseByteOffset
-            get() = parent?.baseByteOffset ?: 0
-    val memberStructs = mutableListOf<StructProperty>()
-    open val sizeInBytes by lazy {
-        memberStructs.sumBy { it.sizeInBytes }
-    }
+        get() = parent?.baseByteOffset ?: 0
+    open var sizeInBytes = 0
+        internal set
     var localByteOffset: Long = 0
-        internal set(value) {
-            field = value
-        }
 
     val baseByteOffset: Long
         get() = localByteOffset + parentBaseByteOffset
 
     open val ownBuffer by lazy { BufferUtils.createByteBuffer(sizeInBytes) }
-    open var provideBuffer: () -> ByteBuffer = {
-        parent?.buffer ?: ownBuffer
-    }
+    open fun provideBuffer() = parent?.buffer ?: ownBuffer
 
     val buffer: ByteBuffer
         get() = provideBuffer()
 
 
-    val <T: Struct> T.LongAsDouble: Struct.LongAsDoubleHelper<T>
-        get() { return LongAsDoubleHelper(this) }
+    val <T : Struct> T.LongAsDouble: LongAsDoubleHelper<T>
+        get() {
+            return LongAsDoubleHelper(this)
+        }
 
     fun usesOwnBuffer(): Boolean = parent == null
-    fun getCurrentLocalByteOffset() = memberStructs.sumBy { it.sizeInBytes }.toLong()
+    fun getCurrentLocalByteOffset() = sizeInBytes.toLong()
 
-    operator fun Int.provideDelegate(thisRef: Struct, prop: KProperty<*>): IntProperty {
+    inline operator fun Int.provideDelegate(thisRef: Struct, prop: KProperty<*>): IntProperty {
         return IntProperty(getCurrentLocalByteOffset())
-                .apply { thisRef.register(this@apply) }
-                .apply { if(this@provideDelegate != 0) this.setValue(thisRef, prop, this@provideDelegate) }
+                .apply { thisRef.registerInlineProperty(this@apply.sizeInBytes) }
+                .apply { if (this@provideDelegate != 0) this.setValue(thisRef, prop, this@provideDelegate) }
     }
 
-    operator fun Float.provideDelegate(thisRef: Struct, prop: KProperty<*>): FloatProperty {
+    inline operator fun Float.provideDelegate(thisRef: Struct, prop: KProperty<*>): FloatProperty {
         return FloatProperty(getCurrentLocalByteOffset())
-                .apply { thisRef.register(this@apply) }
-                .apply { if(this@provideDelegate != 0f) this.setValue(thisRef, prop, this@provideDelegate) }
+                .apply { thisRef.registerInlineProperty(this@apply.sizeInBytes) }
+                .apply { if (this@provideDelegate != 0f) this.setValue(thisRef, prop, this@provideDelegate) }
     }
 
-    operator fun Double.provideDelegate(thisRef: Struct, prop: KProperty<*>): DoubleProperty {
+    inline operator fun Double.provideDelegate(thisRef: Struct, prop: KProperty<*>): DoubleProperty {
         return DoubleProperty(getCurrentLocalByteOffset())
-                .apply { thisRef.register(this@apply) }
-                .apply { if(this@provideDelegate != .0) this.setValue(thisRef, prop, this@provideDelegate) }
+                .apply { thisRef.registerInlineProperty(this@apply.sizeInBytes) }
+                .apply { if (this@provideDelegate != .0) this.setValue(thisRef, prop, this@provideDelegate) }
     }
 
-    fun <T: Struct> T.longAsDouble(): Struct.LongAsDoubleHelper<T> { return LongAsDoubleHelper(this) }
-    operator fun Long.provideDelegate(thisRef: Struct, prop: KProperty<*>): LongProperty {
+    fun <T : Struct> T.longAsDouble(): LongAsDoubleHelper<T> {
+        return LongAsDoubleHelper(this)
+    }
+
+    inline operator fun Long.provideDelegate(thisRef: Struct, prop: KProperty<*>): LongProperty {
         return LongProperty(getCurrentLocalByteOffset())
-                .apply { thisRef.register(this@apply) }
-                .apply { if(this@provideDelegate != 0L) this.setValue(thisRef, prop, this@provideDelegate) }
+                .apply { thisRef.registerInlineProperty(this@apply.sizeInBytes) }
+                .apply { if (this@provideDelegate != 0L) this.setValue(thisRef, prop, this@provideDelegate) }
     }
 
-    operator fun Boolean.provideDelegate(thisRef: Struct, prop: KProperty<*>): BooleanProperty {
+    inline operator fun Boolean.provideDelegate(thisRef: Struct, prop: KProperty<*>): BooleanProperty {
         return BooleanProperty(getCurrentLocalByteOffset())
-                .apply { thisRef.register(this@apply) }
-                .apply { if(this@provideDelegate) this.setValue(thisRef, prop, this@provideDelegate) }
+                .apply { thisRef.registerInlineProperty(this@apply.sizeInBytes) }
+                .apply { if (this@provideDelegate) this.setValue(thisRef, prop, this@provideDelegate) }
     }
 
-    operator fun <ENUM: Enum<*>> Class<ENUM>.provideDelegate(thisRef: Struct, prop: KProperty<*>): EnumProperty<ENUM> {
+    inline operator fun <ENUM : Enum<*>> Class<ENUM>.provideDelegate(thisRef: Struct, prop: KProperty<*>): EnumProperty<ENUM> {
         return EnumProperty(getCurrentLocalByteOffset(), this)
                 .apply { thisRef.register(this@apply) }
 //        TODO: Make this possible
 //                .apply { if(this@provideDelegate) this.setValue(thisRef, prop, this@provideDelegate) }
     }
 
-    operator fun <FIELD: Struct> FIELD.provideDelegate(thisRef: Struct, prop: KProperty<*>): GenericStructProperty<Struct, FIELD> {
+    inline operator fun <FIELD : Struct> FIELD.provideDelegate(thisRef: Struct, prop: KProperty<*>): GenericStructProperty<Struct, FIELD> {
         return thisRef.register(this)
     }
 
-    fun <T: Struct> register(struct: T): GenericStructProperty<Struct, T> {
+    fun <T : Struct> register(struct: T): GenericStructProperty<Struct, T> {
         return object : GenericStructProperty<Struct, T>() {
-            override val sizeInBytes by lazy {
-                struct.sizeInBytes
-            }
+            override val sizeInBytes = struct.sizeInBytes
             override val localByteOffset = this@Struct.getCurrentLocalByteOffset()
             override var currentRef = struct
         }.apply {
@@ -113,25 +112,59 @@ abstract class Struct {
     }
 
     fun register(structProperty: StructProperty) {
-        memberStructs.add(structProperty)
+        sizeInBytes += structProperty.sizeInBytes
     }
 
-    class LongAsDoubleHelper<T: Struct>(val parent: T) {
-        operator fun provideDelegate(thisRef: T, prop: KProperty<*>): LongAsDoubleProperty {
-            return LongAsDoubleProperty(parent.getCurrentLocalByteOffset())
-                    .apply { thisRef.register(this@apply) }
-//                    .apply { if(this@provideDelegate != 0L) this.setValue(thisRef, prop, this@provideDelegate) }
-        }
+    @kotlin.PublishedApi
+    internal fun registerInlineProperty(sizeInBytes: Int) {
+        this.sizeInBytes += sizeInBytes
     }
 }
 
-class SlidingWindow<T: Struct>(val underlying: T) {
+@kotlin.Suppress("NON_PUBLIC_PRIMARY_CONSTRUCTOR_OF_INLINE_CLASS")
+inline class LongAsDoubleHelper<T : Struct> private constructor(private val _parent: Struct) {
+    //Inline classes aren't allowed to have their property based on a type parameter, and so the current solution is
+    //to have the property be of the type param's supertype and then have a public secondary constructor that actually
+    //uses the type parameter. The "unit" is to avoid overload resolution ambiguity.
+    constructor(parent: T, unit: Unit = Unit) : this(parent)
+
+    val parent: T
+        get() {
+            //This cast will always succeed since LongAsDoubleHelper only accepts parent values of type T.
+            @Suppress("UNCHECKED_CAST")
+            return _parent as T
+        }
+
+    inline operator fun provideDelegate(thisRef: T, prop: KProperty<*>): LongAsDoubleProperty {
+        return LongAsDoubleProperty(parent.getCurrentLocalByteOffset())
+                .apply { thisRef.registerInlineProperty(this@apply.sizeInBytes) }
+//                    .apply { if(this@provideDelegate != 0L) this.setValue(thisRef, prop, this@provideDelegate) }
+    }
+}
+
+@kotlin.Suppress("NON_PUBLIC_PRIMARY_CONSTRUCTOR_OF_INLINE_CLASS")
+inline class SlidingWindow<T : Struct> private constructor(private val _underlying: Struct) {
+    //Inline classes aren't allowed to have their property based on a type parameter, and so the current solution is
+    //to have the property be of the type param's supertype and then have a public secondary constructor that actually
+    //uses the type parameter. The "unit" is to avoid overload resolution ambiguity
+    constructor(underlying: T, unit: Unit = Unit) : this(underlying)
+
+    val underlying: T
+        get() {
+            //This cast will always succeed since SlidingWindow only accepts underlying values of type T.
+            @Suppress("UNCHECKED_CAST")
+            return _underlying as T
+        }
     var localByteOffset: Long
         get() = underlying.localByteOffset
         set(value) {
             underlying.localByteOffset = value
         }
-    val sizeInBytes = underlying.sizeInBytes
+    var sizeInBytes
+        get() = underlying.sizeInBytes
+        set(value) {
+            underlying.sizeInBytes = value
+        }
 
     var parent: Struct?
         get() = underlying.parent
@@ -144,87 +177,98 @@ interface StructProperty {
     val localByteOffset: Long
     val sizeInBytes: Int
 
-    companion object: MemUtil by MemUtil.Companion
+    companion object : MemUtil by MemUtil.Companion
 }
-abstract class GenericStructProperty<OWNER_TYPE: Struct, FIELD_TYPE> : StructProperty{
+
+abstract class GenericStructProperty<OWNER_TYPE : Struct, FIELD_TYPE> : StructProperty {
     abstract var currentRef: FIELD_TYPE
 
-    operator fun getValue(thisRef: OWNER_TYPE, property: KProperty<*>): FIELD_TYPE {
+    inline operator fun getValue(thisRef: OWNER_TYPE, property: KProperty<*>): FIELD_TYPE {
         return currentRef
     }
 
-    operator fun setValue(thisRef: OWNER_TYPE, property: KProperty<*>, value: FIELD_TYPE) {
+    inline operator fun setValue(thisRef: OWNER_TYPE, property: KProperty<*>, value: FIELD_TYPE) {
         currentRef = value
     }
 }
 
-inline class IntProperty(override val localByteOffset: Long):StructProperty {
+inline class IntProperty(override val localByteOffset: Long) : StructProperty {
     override val sizeInBytes
         get() = 4
 
-    operator fun setValue(thisRef: Struct, property: KProperty<*>, value: Int) {
+    inline operator fun setValue(thisRef: Struct, property: KProperty<*>, value: Int) {
         BufferAccess.putInt(thisRef.buffer, thisRef.baseByteOffset + localByteOffset, value)
     }
-    operator fun getValue(thisRef: Struct, property: KProperty<*>) = BufferAccess.getInt(thisRef.buffer, thisRef.baseByteOffset + localByteOffset)
+
+    inline operator fun getValue(thisRef: Struct, property: KProperty<*>) = BufferAccess.getInt(thisRef.buffer, thisRef.baseByteOffset + localByteOffset)
 }
-class EnumProperty<ENUM: Enum<*>>(override val localByteOffset: Long, val enumClass: Class<ENUM>):StructProperty {
+
+class EnumProperty<ENUM : Enum<*>>(override val localByteOffset: Long, val enumClass: Class<ENUM>) : StructProperty {
     override val sizeInBytes
         get() = 4
     val enumValues
         get() = enumClass.enumConstants
 
-    operator fun setValue(thisRef: Struct, property: KProperty<*>, value: ENUM) {
+    inline operator fun setValue(thisRef: Struct, property: KProperty<*>, value: ENUM) {
         BufferAccess.putInt(thisRef.buffer, thisRef.baseByteOffset + localByteOffset, value.ordinal)
     }
-    operator fun getValue(thisRef: Struct, property: KProperty<*>) = enumValues[BufferAccess.getInt(thisRef.buffer, thisRef.baseByteOffset + localByteOffset)]
+
+    inline operator fun getValue(thisRef: Struct, property: KProperty<*>) = enumValues[BufferAccess.getInt(thisRef.buffer, thisRef.baseByteOffset + localByteOffset)]
 }
 
-inline class FloatProperty(override val localByteOffset: Long):StructProperty {
+inline class FloatProperty(override val localByteOffset: Long) : StructProperty {
     override val sizeInBytes
         get() = 4
 
-    operator fun setValue(thisRef: Struct, property: KProperty<*>, value: Float) {
+    inline operator fun setValue(thisRef: Struct, property: KProperty<*>, value: Float) {
         BufferAccess.putFloat(thisRef.buffer, thisRef.baseByteOffset + localByteOffset, value)
     }
-    operator fun getValue(thisRef: Struct, property: KProperty<*>) = BufferAccess.getFloat(thisRef.buffer, thisRef.baseByteOffset + localByteOffset)
+
+    inline operator fun getValue(thisRef: Struct, property: KProperty<*>) = BufferAccess.getFloat(thisRef.buffer, thisRef.baseByteOffset + localByteOffset)
 }
 
-inline class DoubleProperty(override val localByteOffset: Long):StructProperty {
+inline class DoubleProperty(override val localByteOffset: Long) : StructProperty {
     override val sizeInBytes
         get() = 8
 
-    operator fun setValue(thisRef: Struct, property: KProperty<*>, value: Double) {
+    inline operator fun setValue(thisRef: Struct, property: KProperty<*>, value: Double) {
         BufferAccess.putDouble(thisRef.buffer, thisRef.baseByteOffset + localByteOffset, value)
     }
-    operator fun getValue(thisRef: Struct, property: KProperty<*>) = BufferAccess.getDouble(thisRef.buffer, thisRef.baseByteOffset + localByteOffset)
+
+    inline operator fun getValue(thisRef: Struct, property: KProperty<*>) = BufferAccess.getDouble(thisRef.buffer, thisRef.baseByteOffset + localByteOffset)
 }
-inline class LongProperty(override val localByteOffset: Long):StructProperty {
+
+inline class LongProperty(override val localByteOffset: Long) : StructProperty {
     override val sizeInBytes
         get() = 8
 
-    operator fun setValue(thisRef: Struct, property: KProperty<*>, value: Long) {
+    inline operator fun setValue(thisRef: Struct, property: KProperty<*>, value: Long) {
         BufferAccess.putLong(thisRef.buffer, thisRef.baseByteOffset + localByteOffset, value)
     }
-    operator fun getValue(thisRef: Struct, property: KProperty<*>) = BufferAccess.getLong(thisRef.buffer, thisRef.baseByteOffset + localByteOffset)
+
+    inline operator fun getValue(thisRef: Struct, property: KProperty<*>) = BufferAccess.getLong(thisRef.buffer, thisRef.baseByteOffset + localByteOffset)
 }
-inline class BooleanProperty(override val localByteOffset: Long):StructProperty {
+
+inline class BooleanProperty(override val localByteOffset: Long) : StructProperty {
     override val sizeInBytes
         get() = 4
 
-    operator fun setValue(thisRef: Struct, property: KProperty<*>, value: Boolean) {
-        BufferAccess.putInt(thisRef.buffer, thisRef.baseByteOffset + localByteOffset, if(value) 1 else 0)
+    inline operator fun setValue(thisRef: Struct, property: KProperty<*>, value: Boolean) {
+        BufferAccess.putInt(thisRef.buffer, thisRef.baseByteOffset + localByteOffset, if (value) 1 else 0)
     }
-    operator fun getValue(thisRef: Struct, property: KProperty<*>) = BufferAccess.getInt(thisRef.buffer, thisRef.baseByteOffset + localByteOffset) == 1
+
+    inline operator fun getValue(thisRef: Struct, property: KProperty<*>) = BufferAccess.getInt(thisRef.buffer, thisRef.baseByteOffset + localByteOffset) == 1
 }
 
-inline class LongAsDoubleProperty(override val localByteOffset: Long): StructProperty {
+inline class LongAsDoubleProperty(override val localByteOffset: Long) : StructProperty {
     override val sizeInBytes
         get() = 8
 
-    operator fun setValue(thisRef: Struct, property: KProperty<*>, value: Long) {
+    inline operator fun setValue(thisRef: Struct, property: KProperty<*>, value: Long) {
         StructProperty.putDouble(thisRef.buffer, thisRef.baseByteOffset + localByteOffset, java.lang.Double.longBitsToDouble(value))
     }
-    operator fun getValue(thisRef: Struct, property: KProperty<*>): Long {
+
+    inline operator fun getValue(thisRef: Struct, property: KProperty<*>): Long {
         return java.lang.Double.doubleToLongBits(BufferAccess.getDouble(thisRef.buffer, thisRef.baseByteOffset + localByteOffset))
     }
 }

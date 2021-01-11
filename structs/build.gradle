@@ -6,8 +6,8 @@ apply plugin: 'maven'
 dependencies {
     compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
     compile "org.jetbrains.kotlin:kotlin-reflect:${kotlin_version}"
-    compile 'org.jetbrains.kotlinx:kotlinx-collections-immutable:0.1'
-    compile 'org.joml:joml:1.9.3'
+    compile 'org.jetbrains.kotlinx:kotlinx-collections-immutable-jvm:0.3.3'
+    compile 'org.joml:joml:1.10.0'
 
     compile "org.lwjgl:lwjgl:${lwjgl_version}"
     compile "org.lwjgl:lwjgl:${lwjgl_version}:natives-windows"
@@ -21,10 +21,16 @@ sourceCompatibility = 1.8
 
 compileKotlin {
     kotlinOptions.jvmTarget = "1.8"
-    kotlinOptions.freeCompilerArgs = ["-Xno-call-assertions", "-Xno-param-assertions"]
+    kotlinOptions.freeCompilerArgs = ["-Xno-call-assertions", "-Xno-param-assertions", "-Xinline-classes"]
+    // A temporary fix for KT-41105 to circumvent a compiler bug where using a delegated property with inline operators
+    // causes the compiler to crash
+    kotlinOptions.useIR = true
 }
 compileTestKotlin {
     kotlinOptions.jvmTarget = "1.8"
+    // A temporary fix for KT-41105 to circumvent a compiler bug where using a delegated property with inline operators
+    // causes the compiler to crash
+    kotlinOptions.useIR = true
 }
 task sourcesJar(type: Jar, dependsOn: classes) {
     classifier = 'sources'

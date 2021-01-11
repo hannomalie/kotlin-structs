@@ -24,9 +24,16 @@ applicationDefaultJvmArgs = ['-XX:+UnlockCommercialFeatures', '-XX:+UnlockDiagno
 compileKotlin {
     kotlinOptions.jvmTarget = "1.8"
     kotlinOptions.freeCompilerArgs = ["-Xno-call-assertions", "-Xno-param-assertions"]
+    // A temporary fix for KT-41105 to circumvent a compiler bug where using a delegated property with inline operators
+    // causes the compiler to crash
+    kotlinOptions.useIR = true
+
 }
 compileTestKotlin {
     kotlinOptions.jvmTarget = "1.8"
+    // A temporary fix for KT-41105 to circumvent a compiler bug where using a delegated property with inline operators
+    // causes the compiler to crash
+    kotlinOptions.useIR = true
 }
 
 jar {
