@@ -22,15 +22,9 @@ sourceCompatibility = 1.8
 compileKotlin {
     kotlinOptions.jvmTarget = "1.8"
     kotlinOptions.freeCompilerArgs = ["-Xno-call-assertions", "-Xno-param-assertions", "-Xinline-classes"]
-    // A temporary fix for KT-41105 to circumvent a compiler bug where using a delegated property with inline operators
-    // causes the compiler to crash
-    kotlinOptions.useIR = true
 }
 compileTestKotlin {
     kotlinOptions.jvmTarget = "1.8"
-    // A temporary fix for KT-41105 to circumvent a compiler bug where using a delegated property with inline operators
-    // causes the compiler to crash
-    kotlinOptions.useIR = true
 }
 task sourcesJar(type: Jar, dependsOn: classes) {
     classifier = 'sources'

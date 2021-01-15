@@ -3,28 +3,28 @@ package de.hanno.struct.benchmark.de.hanno.struct.benchmark.kotlin
 import de.hanno.struct.StructArray
 import de.hanno.struct.benchmark.SimpleMutableStruct
 import de.hanno.struct.benchmark.SimpleStruct
+import de.hanno.struct.benchmark.StructBenchmark
 import de.hanno.struct.forEach
 import org.openjdk.jmh.annotations.Scope
 import org.openjdk.jmh.annotations.State
 import org.openjdk.jmh.infra.Blackhole
 
-
 @State(Scope.Thread)
 open class IterateAndMutateStructArrayState {
     @JvmField
-    val structArray = StructArray(LIST_SIZE) { SimpleMutableStruct() }
+    val structArray = StructArray(StructBenchmark.LIST_SIZE) { SimpleMutableStruct() }
 }
 
 @State(Scope.Thread)
 open class IterateAndMutateStructArrayIndexedState {
     @JvmField
-    val structArray = StructArray(LIST_SIZE) { SimpleMutableStruct() }
+    val structArray = StructArray(StructBenchmark.LIST_SIZE) { SimpleMutableStruct() }
 }
 
 @State(Scope.Thread)
 open class IterateStructState {
     @JvmField
-    val structArray = StructArray(LIST_SIZE) { SimpleStruct() }
+    val structArray = StructArray(StructBenchmark.LIST_SIZE) { SimpleStruct() }
 }
 
 fun iterateAndMutateStructArray(hole: Blackhole, state: IterateAndMutateStructArrayState) {
