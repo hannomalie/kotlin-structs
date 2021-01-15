@@ -1,19 +1,12 @@
 package de.hanno.struct.benchmark;
 
-import de.hanno.struct.SlidingWindow;
 import de.hanno.struct.StructArray;
 import de.hanno.struct.benchmark.de.hanno.struct.benchmark.kotlin.IterateAndMutateStructArrayIndexedState;
 import de.hanno.struct.benchmark.de.hanno.struct.benchmark.kotlin.IterateAndMutateStructArrayState;
 import de.hanno.struct.benchmark.de.hanno.struct.benchmark.kotlin.IterateStructState;
 import kotlin.Unit;
 import org.lwjgl.BufferUtils;
-import org.openjdk.jmh.annotations.Benchmark;
-import org.openjdk.jmh.annotations.Fork;
-import org.openjdk.jmh.annotations.Measurement;
-import org.openjdk.jmh.annotations.Scope;
-import org.openjdk.jmh.annotations.Setup;
-import org.openjdk.jmh.annotations.State;
-import org.openjdk.jmh.annotations.Warmup;
+import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
 import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.RunnerException;
@@ -94,7 +87,6 @@ public class StructBenchmark {
     public static class KotlinDelegatedPropertyUnsafeSlidingWindowBufferState {
         public final ByteBuffer buffer = BufferUtils.createByteBuffer(12* LIST_SIZE);
         public final KotlinDelegatedPropertyUnsafeSlidingWindow windowStruct = new KotlinDelegatedPropertyUnsafeSlidingWindow(buffer);
-        public final SlidingWindow<KotlinDelegatedPropertyUnsafeSlidingWindow> window = new SlidingWindow<>(windowStruct);
     }
 
 
@@ -161,7 +153,7 @@ public class StructBenchmark {
     @Benchmark
     public void iterateAndMutateKotlinDelegatedPropertyUnsafeSlidingWindowBuffer(Blackhole hole, KotlinDelegatedPropertyUnsafeSlidingWindowBufferState state) {
         for(int i = 0; i <= state.buffer.capacity() - 12; i+=12) {
-            state.window.setLocalByteOffset(i);
+            state.windowStruct.setLocalByteOffset(i);
             state.windowStruct.setX(state.windowStruct.getX() + 1);
             state.windowStruct.setY(state.windowStruct.getY() + 2);
             state.windowStruct.setZ(state.windowStruct.getZ() + 3);

@@ -4,7 +4,7 @@ package de.hanno.struct.benchmark;
 import java.nio.ByteBuffer;
 
 public class SimpleSlidingWindow {
-    private ByteBuffer buffer;
+    private final ByteBuffer buffer;
     public int baseByteOffset = 0;
     public SimpleSlidingWindow(ByteBuffer buffer) {
         this.buffer = buffer;

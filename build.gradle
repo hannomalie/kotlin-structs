@@ -1,6 +1,6 @@
 buildscript {
-    ext.kotlin_version = '1.3.21'
-    ext.lwjgl_version = '3.1.2'
+    ext.kotlin_version = '1.4.10'
+    ext.lwjgl_version = '3.2.3'
 
     repositories {
         mavenCentral()
