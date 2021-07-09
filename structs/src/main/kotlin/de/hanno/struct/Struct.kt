@@ -158,7 +158,7 @@ abstract class GenericStructProperty<OWNER_TYPE: Struct, FIELD_TYPE> : StructPro
     }
 }
 
-inline class IntProperty(override val localByteOffset: Long):StructProperty {
+class IntProperty(override val localByteOffset: Long):StructProperty {
     override val sizeInBytes
         get() = 4
 
@@ -179,7 +179,7 @@ class EnumProperty<ENUM: Enum<*>>(override val localByteOffset: Long, val enumCl
     operator fun getValue(thisRef: Struct, property: KProperty<*>) = enumValues[BufferAccess.getInt(thisRef.buffer, thisRef.baseByteOffset + localByteOffset)]
 }
 
-inline class FloatProperty(override val localByteOffset: Long):StructProperty {
+class FloatProperty(override val localByteOffset: Long):StructProperty {
     override val sizeInBytes
         get() = 4
 
@@ -189,7 +189,7 @@ inline class FloatProperty(override val localByteOffset: Long):StructProperty {
     operator fun getValue(thisRef: Struct, property: KProperty<*>) = BufferAccess.getFloat(thisRef.buffer, thisRef.baseByteOffset + localByteOffset)
 }
 
-inline class DoubleProperty(override val localByteOffset: Long):StructProperty {
+class DoubleProperty(override val localByteOffset: Long):StructProperty {
     override val sizeInBytes
         get() = 8
 
@@ -198,7 +198,7 @@ inline class DoubleProperty(override val localByteOffset: Long):StructProperty {
     }
     operator fun getValue(thisRef: Struct, property: KProperty<*>) = BufferAccess.getDouble(thisRef.buffer, thisRef.baseByteOffset + localByteOffset)
 }
-inline class LongProperty(override val localByteOffset: Long):StructProperty {
+class LongProperty(override val localByteOffset: Long):StructProperty {
     override val sizeInBytes
         get() = 8
 
@@ -207,7 +207,7 @@ inline class LongProperty(override val localByteOffset: Long):StructProperty {
     }
     operator fun getValue(thisRef: Struct, property: KProperty<*>) = BufferAccess.getLong(thisRef.buffer, thisRef.baseByteOffset + localByteOffset)
 }
-inline class BooleanProperty(override val localByteOffset: Long):StructProperty {
+class BooleanProperty(override val localByteOffset: Long):StructProperty {
     override val sizeInBytes
         get() = 4
 
@@ -217,7 +217,7 @@ inline class BooleanProperty(override val localByteOffset: Long):StructProperty 
     operator fun getValue(thisRef: Struct, property: KProperty<*>) = BufferAccess.getInt(thisRef.buffer, thisRef.baseByteOffset + localByteOffset) == 1
 }
 
-inline class LongAsDoubleProperty(override val localByteOffset: Long): StructProperty {
+class LongAsDoubleProperty(override val localByteOffset: Long): StructProperty {
     override val sizeInBytes
         get() = 8
 
