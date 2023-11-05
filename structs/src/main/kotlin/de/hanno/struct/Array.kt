@@ -1,11 +1,12 @@
 package de.hanno.struct
 
+import java.lang.foreign.MemorySegment
 import java.nio.ByteBuffer
 
 interface Array<T> {
     val size: Int
     val indices: IntRange
-    val buffer: ByteBuffer
+    val buffer: MemorySegment
     val sizeInBytes: Int
 
     fun getAtIndex(index: Int) : T = get(index)
@@ -36,7 +37,7 @@ class StructObjectArray<T: Struct>(override val size: Int, val factory: (Struct)
             val element = factory(this).apply {
                 backingList.add(this)
             }
-            this.register(element)
+            this.register(i.toString(), element) // TODO: Likely not correct
         }
     }
 
@@ -49,7 +50,7 @@ class StructObjectArray<T: Struct>(override val size: Int, val factory: (Struct)
 fun <T: Struct> StructArray<T>.shrink(size: Int, copyContent: Boolean = true) = shrinkToBytes(size * slidingWindow.sizeInBytes, copyContent)
 
 
-fun <T: Struct> StructArray<T>.shrinkToBytes(sizeInBytes: Int, copyContent: Boolean = true) = if(buffer.capacity() > sizeInBytes) {
+fun <T: Struct> StructArray<T>.shrinkToBytes(sizeInBytes: Int, copyContent: Boolean = true) = if(buffer.byteSize() > sizeInBytes) {
     StructArray(sizeInBytes/slidingWindow.sizeInBytes, factory).apply {
         if(copyContent) {
             val self: Array<T> = this
@@ -59,7 +60,7 @@ fun <T: Struct> StructArray<T>.shrinkToBytes(sizeInBytes: Int, copyContent: Bool
 } else this
 
 fun <T: Struct> StructArray<T>.resize(size: Int, copyContent: Boolean = true) = resizeToBytes(size * slidingWindow.sizeInBytes, copyContent)
-fun <T: Struct> StructArray<T>.resizeToBytes(sizeInBytes: Int, copyContent: Boolean = true) = if(buffer.capacity() != sizeInBytes) {
+fun <T: Struct> StructArray<T>.resizeToBytes(sizeInBytes: Int, copyContent: Boolean = true) = if(buffer.byteSize() != sizeInBytes.toLong()) {
     StructArray(sizeInBytes/slidingWindow.sizeInBytes, factory).apply {
         if(copyContent) {
             val self: Array<T> = this
@@ -71,7 +72,7 @@ fun <T: Struct> StructArray<T>.resizeToBytes(sizeInBytes: Int, copyContent: Bool
 
 fun <T: Struct> StructArray<T>.enlarge(size: Int, copyContent: Boolean = true) = enlargeToBytes(size * slidingWindow.sizeInBytes, copyContent)
 
-fun <T: Struct> StructArray<T>.enlargeToBytes(sizeInBytes: Int, copyContent: Boolean = true) = if(buffer.capacity() < sizeInBytes) {
+fun <T: Struct> StructArray<T>.enlargeToBytes(sizeInBytes: Int, copyContent: Boolean = true) = if(buffer.byteSize() < sizeInBytes.toLong()) {
     StructArray(sizeInBytes/slidingWindow.sizeInBytes, factory).apply {
         if(copyContent) {
             val self: Array<T> = this@apply
@@ -93,45 +94,14 @@ fun <T: Struct> StructArray<T>.enlargeToBytes(sizeInBytes: Int, copyContent: Boo
     copyTo(target.buffer, rewindBuffers)
 }
 
-@JvmOverloads fun <T: Struct> Array<T>.copyTo(target: ByteBuffer, rewindBuffers: Boolean = true) {
-    buffer.copyTo(target, rewindBuffers, 0)
+@JvmOverloads fun <T: Struct> Array<T>.copyTo(target: MemorySegment, rewindBuffers: Boolean = true) {
+    target.copyFrom(buffer)
 }
 
 @JvmOverloads fun <T: Struct> StructArray<T>.clone(rewindBuffer: Boolean = true): StructArray<T> {
     return StructArray(size = this.size, factory = this.factory).apply {
         val self: Array<T> = this@apply
         this@clone.copyTo(self, true)
-        if(rewindBuffer) {
-            this.buffer.rewind()
-        }
-    }
-}
-
-@JvmOverloads fun ByteBuffer.copyTo(target: ByteBuffer, rewindBuffers: Boolean = false, targetOffset: Int = 0) {
-    val positionBefore = position()
-    val targetPositionBefore = target.position()
-    if(rewindBuffers) {
-        rewind()
-        target.rewind()
-    }
-    val targetBufferSmallerThanNeeded = capacity() > target.capacity() - targetOffset
-
-    if(targetBufferSmallerThanNeeded) {
-        val array = toArray(true, target.capacity())
-        target.put(array, targetOffset, array.size-1)
-        target.rewind()
-    } else {
-        if(positionBefore != targetOffset) { target.position(targetOffset) }
-        if(target != this) {
-            target.put(this)
-        }
-    }
-    if(rewindBuffers) {
-        rewind()
-        target.rewind()
-    } else {
-        position(positionBefore)
-        target.position(targetPositionBefore)
     }
 }
 
@@ -155,19 +125,19 @@ fun <T: Struct> StructArray<T>.enlargeToBytes(sizeInBytes: Int, copyContent: Boo
     }
 }
 
-@JvmOverloads fun <T:Struct> ByteBuffer.forEach(rewindBuffer: Boolean = true, slidingWindow: T, function: (T) -> Unit) {
+@JvmOverloads fun <T:Struct> MemorySegment.forEach(rewindBuffer: Boolean = true, slidingWindow: T, function: (T) -> Unit) {
     forEach(rewindBuffer, SlidingWindow(slidingWindow), function)
 }
 
-@JvmOverloads fun <T:Struct> ByteBuffer.forEach(rewindBuffer: Boolean = true, slidingWindow: SlidingWindow<T>, function: (T) -> Unit) {
+@JvmOverloads fun <T:Struct> MemorySegment.forEach(rewindBuffer: Boolean = true, slidingWindow: SlidingWindow<T>, function: (T) -> Unit) {
     rewinded<T>(rewindBuffer) {
         performIteration(slidingWindow, function)
     }
 }
 
-fun <T : Struct> ByteBuffer.performIteration(slidingWindow: SlidingWindow<T>, function: (T) -> Unit) {
+fun <T : Struct> MemorySegment.performIteration(slidingWindow: SlidingWindow<T>, function: (T) -> Unit) {
     var counter = 0
-    val capacity = capacity()
+    val capacity = byteSize()
     val slidingWindowSize = slidingWindow.sizeInBytes
     while (counter * slidingWindowSize <= capacity - slidingWindowSize) {
         slidingWindow.localByteOffset = (counter * slidingWindowSize).toLong()
@@ -175,49 +145,21 @@ fun <T : Struct> ByteBuffer.performIteration(slidingWindow: SlidingWindow<T>, fu
         counter++
     }
 }
-inline fun <T: Struct> ByteBuffer.rewinded(rewind: Boolean, function: () -> Unit) {
-    val positionBefore = handleRewindingBefore(rewind)
+inline fun <T: Struct> MemorySegment.rewinded(rewind: Boolean, function: () -> Unit) {
     function()
-    handleRewindingAfter(rewind, positionBefore)
 }
 
-fun ByteBuffer.handleRewindingAfter(rewindBuffer: Boolean, positionBefore: Int) {
-    if (rewindBuffer) {
-        rewind()
-    } else {
-        position(positionBefore)
-    }
-}
-
-fun ByteBuffer.handleRewindingBefore(rewindBuffer: Boolean): Int {
-    val positionBefore = position()
-    if (rewindBuffer) {
-        rewind()
-    }
-    return positionBefore
-}
-
-@JvmOverloads inline fun <T:Struct> ByteBuffer.forEachIndexed(rewindBuffer: Boolean = true, slidingWindow: T, function: (Int, T) -> Unit) {
+@JvmOverloads inline fun <T:Struct> MemorySegment.forEachIndexed(rewindBuffer: Boolean = true, slidingWindow: T, function: (Int, T) -> Unit) {
     forEachIndexed(rewindBuffer, SlidingWindow(slidingWindow), function)
 }
-@JvmOverloads inline fun <T:Struct> ByteBuffer.forEachIndexed(rewindBuffer: Boolean = true, slidingWindow: SlidingWindow<T>, function: (Int, T) -> Unit) {
-    val positionBefore = position()
-    if (rewindBuffer) {
-        rewind()
-    }
+@JvmOverloads inline fun <T:Struct> MemorySegment.forEachIndexed(rewindBuffer: Boolean = true, slidingWindow: SlidingWindow<T>, function: (Int, T) -> Unit) {
 
     var counter = 0
-    val capacity = capacity()
+    val capacity = byteSize()
     val slidingWindowSize = slidingWindow.sizeInBytes
     while(counter* slidingWindowSize <= capacity - slidingWindowSize) {
         slidingWindow.localByteOffset = (counter * slidingWindowSize).toLong()
         function(counter, slidingWindow.underlying)
         counter++
-    }
-
-    if(rewindBuffer) {
-        rewind()
-    } else {
-        position(positionBefore)
     }
 }

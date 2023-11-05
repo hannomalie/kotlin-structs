@@ -1,10 +1,6 @@
 buildscript {
-
     repositories {
         mavenCentral()
-    }
-    dependencies {
-        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:1.5.20")
     }
 }
 
@@ -17,8 +13,5 @@ subprojects {
     repositories {
         mavenLocal()
         mavenCentral()
-        maven {
-            setUrl("https://dl.bintray.com/kotlin/kotlinx")
-        }
     }
 }
