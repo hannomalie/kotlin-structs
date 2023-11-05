@@ -1,13 +1,12 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-    id("org.jetbrains.kotlin.jvm")
+    kotlin("jvm")
 }
 
 dependencies {
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
-    implementation("org.jetbrains.kotlinx:kotlinx-collections-immutable:0.1")
     implementation("org.joml:joml:1.9.3")
 
     val lwjglVersion = "3.1.2"
@@ -21,7 +20,7 @@ dependencies {
 
 tasks.withType<KotlinCompile> {
     kotlinOptions.jvmTarget = "1.8"
-    kotlinOptions.freeCompilerArgs = listOf("-Xno-call-assertions", "-Xno-param-assertions")
+    kotlinOptions.freeCompilerArgs = listOf("-Xno-call-assertions", "-Xno-param-assertions", "-Xcontext-receivers")
 }
 java {
     withJavadocJar()
@@ -29,5 +28,18 @@ java {
 }
 val compileKotlin: KotlinCompile by tasks
 compileKotlin.kotlinOptions {
-    languageVersion = "1.5"
+    languageVersion = "1.8"
+}
+java {
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(21))
+        vendor.set(JvmVendorSpec.ADOPTOPENJDK)
+        implementation.set(JvmImplementation.VENDOR_SPECIFIC)
+    }
+}
+tasks.withType<JavaCompile> {
+    options.compilerArgs.add("--enable-preview")
+}
+tasks.withType<Test> {
+    jvmArgs!!.add("--enable-preview")
 }

@@ -23,6 +23,7 @@
 package de.hanno.memutil
 
 import de.hanno.memutil.Config.Companion.useUnsafe
+import java.lang.foreign.MemorySegment
 import java.nio.ByteBuffer
 
 /**
@@ -35,22 +36,22 @@ import java.nio.ByteBuffer
  */
 interface MemUtil {
 
-    fun putLong(dst: ByteBuffer, offset: Long, value: Long)
-    fun getLong(dst: ByteBuffer, offset: Long): Long
+    fun putLong(dst: MemorySegment, offset: Long, value: Long)
+    fun getLong(dst: MemorySegment, offset: Long): Long
 
-    fun putInt(dst: ByteBuffer, offset: Long, value: Int)
-    fun getInt(dst: ByteBuffer, offset: Long): Int
+    fun putInt(dst: MemorySegment, offset: Long, value: Int)
+    fun getInt(dst: MemorySegment, offset: Long): Int
 
-    fun putFloat(dst: ByteBuffer, offset: Long, value: Float)
-    fun getFloat(dst: ByteBuffer, offset: Long): Float
+    fun putFloat(dst: MemorySegment, offset: Long, value: Float)
+    fun getFloat(dst: MemorySegment, offset: Long): Float
 
-    fun putDouble(dst: ByteBuffer, offset: Long, value: Double)
-    fun getDouble(dst: ByteBuffer, offset: Long): Double
+    fun putDouble(dst: MemorySegment, offset: Long, value: Double)
+    fun getDouble(dst: MemorySegment, offset: Long): Double
 
-    fun putBoolean(dst: ByteBuffer, offset: Long, value: Boolean)
-    fun getBoolean(dst: ByteBuffer, offset: Long): Boolean
+    fun putBoolean(dst: MemorySegment, offset: Long, value: Boolean)
+    fun getBoolean(dst: MemorySegment, offset: Long): Boolean
 
-    companion object: MemUtil by (if(useUnsafe) MemUtilUnsafe() else MemUtilNIO())
+    companion object: MemUtil by MemUtilUnsafe()
 }
 
 

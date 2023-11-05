@@ -4,7 +4,9 @@ import org.junit.Assert
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Test
-import org.lwjgl.BufferUtils
+import java.lang.foreign.Arena
+import java.lang.foreign.ValueLayout
+import java.lang.invoke.VarHandle
 
 class StructTest {
 
@@ -16,6 +18,7 @@ class StructTest {
             var myMutableBoolean by false
         }
         val myStruct = MyStruct()
+
         assertEquals(0, myStruct.myInt)
         assertEquals(.0f, myStruct.myMutableFloat)
         assertEquals(false, myStruct.myMutableBoolean)
@@ -28,7 +31,7 @@ class StructTest {
         }
         class MyStruct: Struct() {
             override var provideBuffer = { _buffer }
-            val _buffer = BufferUtils.createByteBuffer(8)
+            val _buffer = Arena.global().allocate(ValueLayout.JAVA_BYTE.byteAlignment(), 8)
             val nestedStruct by NestedStruct()
             var myMutableFloat by 0.0f
         }
@@ -58,10 +61,9 @@ class StructTest {
         assertEquals(0, myStruct.myInt)
         assertEquals(4, myStruct.myMutableInt)
         assertEquals(2f, myStruct.myMutableFloat)
-        myStruct.buffer.rewind()
-        assertEquals(0, myStruct.buffer.int)
-        assertEquals(4, myStruct.buffer.int)
-        assertEquals(2f, myStruct.buffer.float)
+        assertEquals(0, myStruct.buffer.get(ValueLayout.JAVA_INT, 0))
+        assertEquals(4, myStruct.buffer.get(ValueLayout.JAVA_INT, 1))
+        assertEquals(2f, myStruct.buffer.get(ValueLayout.JAVA_FLOAT, 2))
     }
 
     @Test
@@ -71,7 +73,6 @@ class StructTest {
             var myMutableInt by 0
         }
 
-
         val source = MyStruct().apply { myMutableInt = 4 }
 
         assertEquals(8, source.sizeInBytes)
@@ -79,9 +80,8 @@ class StructTest {
         Assert.assertTrue(source.memberStructs[1] is IntProperty)
         assertEquals(0, source.myInt)
         assertEquals(4, source.myMutableInt)
-        source.buffer.rewind()
-        assertEquals(0, source.buffer.int)
-        assertEquals(4, source.buffer.int)
+        assertEquals(0, source.buffer.get(ValueLayout.JAVA_INT, 0))
+        assertEquals(4, source.buffer.get(ValueLayout.JAVA_INT, 1))
 
 
         val target = MyStruct()
@@ -89,18 +89,15 @@ class StructTest {
         Assert.assertTrue(target.usesOwnBuffer())
         source.copyTo(target)
         Assert.assertNotSame(source.buffer, target.buffer)
-        assertEquals(8, target.buffer.capacity())
+        assertEquals(8, target.buffer.byteSize())
         assertEquals(0, target.myInt)
         assertEquals(4, target.myMutableInt)
 
         target.myMutableInt = 5
         assertEquals(5, target.myMutableInt)
 
-        target.buffer.rewind()
-        source.buffer.rewind()
         source.copyFrom(target)
         assertEquals(5, source.myMutableInt)
-
     }
 
 
@@ -159,11 +156,9 @@ class StructTest {
         complexNestedStruct.nestedStruct.myMutableInt = 27
         assertEquals(27, complexNestedStruct.nestedStruct.myMutableInt)
 
-
-        myStruct.buffer.rewind()
-        assertEquals(0, myStruct.buffer.int)
-        assertEquals(2.0f, myStruct.buffer.float)
-        assertEquals(99, myStruct.buffer.int)
+        assertEquals(0, myStruct.buffer.get(ValueLayout.JAVA_INT, 0))
+        assertEquals(2.0f, myStruct.buffer.get(ValueLayout.JAVA_FLOAT, 1))
+        assertEquals(99, myStruct.buffer.get(ValueLayout.JAVA_INT, 2))
     }
 
 }
